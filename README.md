@@ -41,7 +41,7 @@ pi remove /Users/illwill/Code/pi-tripwire
 Quick one-off test without installing:
 
 ```sh
-pi -e ./src/index.ts
+pi -e ./extensions/tripwire/index.ts
 ```
 
 Normal local development loop:
@@ -60,6 +60,7 @@ pi install git:github.com/<user>/pi-tripwire@v0.1.0
 
 ## Design
 
+- Package entrypoint lives at `extensions/tripwire/index.ts` so Pi displays the extension as `tripwire`, not `src`.
 - Uses `ctx.ui.setStatus("tripwire", ...)`, not a custom footer replacement.
 - Marks agent shell commands with hidden `PI_TRIPWIRE_*` env vars.
 - Scans TCP `LISTEN` ports and only displays listeners attributed to the current Pi session.

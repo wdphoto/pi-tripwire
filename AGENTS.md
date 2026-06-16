@@ -53,8 +53,11 @@ Preferred MVP approach:
 When implementation starts, prefer this structure:
 
 ```text
+extensions/
+  tripwire/
+    index.ts        # Pi package entrypoint; keeps displayed extension name as tripwire
 src/
-  index.ts          # Pi extension entrypoint and lifecycle wiring
+  index.ts          # extension implementation and lifecycle wiring
   scan.ts           # platform scan orchestration
   lsof.ts           # lsof execution + parser
   classify.ts       # Pi-spawned relevance rules and label heuristics

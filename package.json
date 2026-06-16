@@ -4,9 +4,17 @@
   "description": "Pi extension that shows agent-spawned localhost servers in the footer.",
   "type": "module",
   "private": true,
-  "keywords": ["pi-package", "pi", "pi-extension", "localhost", "footer"],
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-extension",
+    "localhost",
+    "footer"
+  ],
   "pi": {
-    "extensions": ["./src/index.ts"]
+    "extensions": [
+      "./extensions/tripwire/index.ts"
+    ]
   },
   "scripts": {
     "test": "tsx --test \"src/**/*.test.ts\"",

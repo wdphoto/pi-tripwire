@@ -152,8 +152,11 @@ Rules:
 ## Suggested source layout
 
 ```text
+extensions/
+  tripwire/
+    index.ts        # Pi package entrypoint; makes Pi display extension name as tripwire
 src/
-  index.ts          # Pi extension lifecycle wiring
+  index.ts          # extension lifecycle wiring
   scan.ts           # scanner interface + orchestration
   lsof.ts           # lsof adapter and parser
   env.ts            # read only PI_TRIPWIRE_* metadata for pid
@@ -221,7 +224,7 @@ Postpone until MVP feels solid:
 
 Build it package-shaped from the start, but share it lightly at first:
 
-1. **Development**: run with `pi -e ./src/index.ts` for quick tests.
+1. **Development**: run with `pi -e ./extensions/tripwire/index.ts` for quick tests.
 2. **Local reload workflow**: install/copy into `.pi/extensions/tripwire/index.ts` or `~/.pi/agent/extensions/tripwire/index.ts`.
 3. **Share with others**: add a `package.json` `pi.extensions` manifest and install from git:
    ```sh
