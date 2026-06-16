@@ -239,6 +239,20 @@ Other second-pass items:
 - Smarter labels for `node` wrappers (`vite`, `next`, `astro`, etc.).
 - Open/copy/kill actions only if we explicitly choose to become more than a footer indicator.
 
+## Packaging compatibility note
+
+Keep the Pi-facing entrypoint stable when possible:
+
+```text
+extensions/tripwire/index.ts
+```
+
+The internal implementation path can change, for example from `src/index.ts` to `src/tripwire/index.ts`, as long as `extensions/tripwire/index.ts` and `package.json` are updated together.
+
+Package installs follow the `pi.extensions` manifest, so local/git/npm package users should update cleanly after `/reload` or `pi update`. Direct file installs to old paths are the only compatibility risk. We do not recommend direct file installs except one-off `pi -e` testing.
+
+Review this before any major path/name cleanup.
+
 ## Sharing and local workflow
 
 Build it package-shaped from the start, but keep one source repo.
