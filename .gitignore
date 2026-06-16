@@ -1,7 +1,55 @@
+# macOS / editor noise
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.asc
+*.gpg
+
+# Pi local runtime/cache/state
+# Do not blanket-ignore .pi/: fixtures/examples may intentionally commit Pi config.
+.pi/settings.json
+.pi/npm/
+.pi/git/
+.pi/sessions/
+.pi/*.bak
+.pi/*.bak.*
+.pi/**/*.bak
+.pi/**/*.bak.*
+
+# Construct local/dev artifacts
+.pi/construct.lock.json
+construct-*.sh
+construct-*/
+
+# Node / TypeScript artifacts
 node_modules/
 dist/
+build/
 coverage/
-.DS_Store
-*.log
+*.tsbuildinfo
+*.tgz
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-.pi/
+# Local logs / temp
+*.log
+*.tmp
+*.temp
+.cache/
+.tmp/
+tmp/
