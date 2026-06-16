@@ -48,16 +48,16 @@ What we should change this pass:
 
 ## MVP definition
 
-- [ ] Package-shaped repo scaffold: `package.json`, `tsconfig.json`, `src/`, tests.
-- [ ] Pi extension entrypoint exports `default function (pi: ExtensionAPI)`.
-- [ ] `session_start`: initialize state, start one scan interval, render initial status.
-- [ ] `session_shutdown`: clear interval and clear `ctx.ui.setStatus("tripwire", undefined)`.
-- [ ] Track Pi agent `bash` tool calls only.
-- [ ] Identify listeners spawned by those tool calls.
-- [ ] Scan TCP `LISTEN` ports.
-- [ ] Format compact clickable footer labels.
-- [ ] Clear footer status when no Pi-spawned listeners exist.
-- [ ] Tests for parser, attribution, and formatting.
+- [x] Package-shaped repo scaffold: `package.json`, `tsconfig.json`, `src/`, tests.
+- [x] Pi extension entrypoint exports `default function (pi: ExtensionAPI)`.
+- [x] `session_start`: initialize state, start one scan interval, render initial status.
+- [x] `session_shutdown`: clear interval and clear `ctx.ui.setStatus("tripwire", undefined)`.
+- [x] Track Pi agent `bash` tool calls only.
+- [x] Identify listeners spawned by those tool calls.
+- [x] Scan TCP `LISTEN` ports.
+- [x] Format compact clickable footer labels.
+- [x] Clear footer status when no Pi-spawned listeners exist.
+- [x] Tests for parser, attribution, and formatting.
 
 ## Attribution strategy
 
@@ -168,31 +168,31 @@ src/
 
 ### Phase 0 — scaffold
 
-- [ ] Add package metadata with `pi` manifest.
-- [ ] Add TypeScript config.
-- [ ] Add test runner.
-- [ ] Add README with dev/install/share notes.
+- [x] Add package metadata with `pi` manifest.
+- [x] Add TypeScript config.
+- [x] Add test runner.
+- [x] Add README with dev/install/share notes.
 
 ### Phase 1 — port scanning
 
-- [ ] Implement pure `parseLsofListeners(output)` with fixtures.
-- [ ] Implement `LsofScanner` with timeout.
+- [x] Implement pure `parseLsofListeners(output)` with fixtures.
+- [x] Implement `LsofScanner` with timeout.
 - [ ] Add Linux fallback only if needed after first manual test.
 
 ### Phase 2 — Pi-spawn attribution
 
-- [ ] Generate per-extension/per-session id on `session_start`.
-- [ ] Mutate agent `bash` tool calls to export `PI_TRIPWIRE_*` markers.
-- [ ] Read marker metadata for listener PIDs.
-- [ ] Filter to current session + actor `agent`.
-- [ ] Add fallback notes/tests for unavailable env reads.
+- [x] Generate per-extension/per-session id on `session_start`.
+- [x] Mutate agent `bash` tool calls to export `PI_TRIPWIRE_*` markers.
+- [x] Read marker metadata for listener PIDs.
+- [x] Filter to current session + actor `agent`.
+- [x] Add fallback notes/tests for unavailable env reads.
 
 ### Phase 3 — footer status
 
-- [ ] Format clickable `label:port` parts.
-- [ ] Color all MVP entries as Pi/agent-spawned.
-- [ ] Clear status when empty.
-- [ ] Ensure interval cleanup across `/reload`, `/new`, `/resume`, `/fork`, and quit.
+- [x] Format clickable `label:port` parts.
+- [x] Color all MVP entries as Pi/agent-spawned.
+- [x] Clear status when empty.
+- [x] Ensure interval cleanup across `/reload`, `/new`, `/resume`, `/fork`, and quit.
 
 ### Phase 4 — tests/manual QA
 
