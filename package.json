@@ -2,6 +2,7 @@
   "name": "pi-tripwire",
   "version": "0.1.0",
   "description": "Pi extension that shows agent-spawned localhost servers in the footer.",
+  "license": "MIT",
   "type": "module",
   "private": true,
   "keywords": [
