@@ -12,7 +12,13 @@ It is meant to answer: “what local server did the agent start for me?”
 
 ## Install
 
-Install from GitHub:
+Install the latest release from GitHub:
+
+```sh
+pi install git:github.com/wdphoto/pi-tripwire@v0.0.1
+```
+
+Or install the latest `main`:
 
 ```sh
 pi install git:github.com/wdphoto/pi-tripwire
@@ -30,7 +36,7 @@ If you only want Tripwire in one project:
 
 ```sh
 cd /path/to/project
-pi install -l git:github.com/wdphoto/pi-tripwire
+pi install -l git:github.com/wdphoto/pi-tripwire@v0.0.1
 ```
 
 Then run `/reload` in Pi.
