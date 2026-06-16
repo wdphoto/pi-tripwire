@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { TRIPWIRE_ENV } from "./config.js";
-import type { TripwireMarker } from "./types.js";
+import { TRIPWIRE_ENV } from "./config.ts";
+import type { TripwireMarker } from "./types.ts";
 
 const execFileAsync = promisify(execFile);
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classifyListeners, labelForCommand } from "./classify.js";
-import type { RawListener, TripwireMarker } from "./types.js";
+import { classifyListeners, labelForCommand } from "./classify.ts";
+import type { RawListener, TripwireMarker } from "./types.ts";
 
 test("labelForCommand normalizes common command names", () => {
   assert.equal(labelForCommand("/usr/bin/python3"), "python");

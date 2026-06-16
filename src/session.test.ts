@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deriveTripwireSessionId } from "./session.js";
+import { deriveTripwireSessionId } from "./session.ts";
 
 test("deriveTripwireSessionId is stable for a Pi session file", () => {
   assert.equal(

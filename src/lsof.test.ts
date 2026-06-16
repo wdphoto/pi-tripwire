@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseLsofListeners } from "./lsof.js";
+import { parseLsofListeners } from "./lsof.ts";
 
 test("parseLsofListeners parses common lsof LISTEN rows", () => {
   const output = `COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME

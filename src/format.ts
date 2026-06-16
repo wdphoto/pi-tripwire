@@ -1,4 +1,4 @@
-import type { TrackedListener, TripwireConfig } from "./types.js";
+import type { TrackedListener, TripwireConfig } from "./types.ts";
 
 type MinimalTheme = {
   fg(color: string, text: string): string;

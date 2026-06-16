@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatFooterStatus, osc8 } from "./format.js";
-import type { TrackedListener } from "./types.js";
+import { formatFooterStatus, osc8 } from "./format.ts";
+import type { TrackedListener } from "./types.ts";
 
 const theme = {
   fg(color: string, text: string) {

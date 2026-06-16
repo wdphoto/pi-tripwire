@@ -1,4 +1,4 @@
-import type { TripwireConfig } from "./types.js";
+import type { TripwireConfig } from "./types.ts";
 
 export const DEFAULT_CONFIG: TripwireConfig = {
   refreshMs: 3_000,

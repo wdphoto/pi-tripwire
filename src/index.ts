@@ -1,14 +1,14 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { classifyListeners } from "./classify.js";
-import { DEFAULT_CONFIG, TRIPWIRE_ENV } from "./config.js";
-import { readTripwireMarker } from "./env.js";
-import { formatFooterStatus } from "./format.js";
-import { LsofScanner } from "./lsof.js";
-import { diffPids, pruneDeadPids, snapshotPids } from "./process.js";
-import { deriveTripwireSessionId } from "./session.js";
-import { buildExportPrelude } from "./shell.js";
-import type { TripwireMarker } from "./types.js";
+import { classifyListeners } from "./classify.ts";
+import { DEFAULT_CONFIG, TRIPWIRE_ENV } from "./config.ts";
+import { readTripwireMarker } from "./env.ts";
+import { formatFooterStatus } from "./format.ts";
+import { LsofScanner } from "./lsof.ts";
+import { diffPids, pruneDeadPids, snapshotPids } from "./process.ts";
+import { deriveTripwireSessionId } from "./session.ts";
+import { buildExportPrelude } from "./shell.ts";
+import type { TripwireMarker } from "./types.ts";
 
 export default function tripwire(pi: ExtensionAPI) {
   const config = DEFAULT_CONFIG;
@@ -36,6 +36,7 @@ export default function tripwire(pi: ExtensionAPI) {
       );
       const markers = new Map(markerEntries);
 
+      if (disposed) return;
       const tracked = classifyListeners({ listeners, markers, agentPids, sessionId });
       ctx.ui.setStatus(config.statusKey, formatFooterStatus(tracked, ctx.ui.theme, config));
     } finally {

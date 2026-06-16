@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { RawListener, TripwireConfig } from "./types.js";
+import type { RawListener, TripwireConfig } from "./types.ts";
 
 const execFileAsync = promisify(execFile);
 

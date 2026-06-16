@@ -1,5 +1,5 @@
-import { DEV_COMMANDS } from "./config.js";
-import type { RawListener, TrackedListener, TripwireMarker } from "./types.js";
+import { DEV_COMMANDS } from "./config.ts";
+import type { RawListener, TrackedListener, TripwireMarker } from "./types.ts";
 
 export function labelForCommand(command: string): string {
   const base = command.split(/[\\/]/).pop() ?? command;

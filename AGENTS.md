@@ -28,7 +28,10 @@ hugo:1313 node:5173 python:8000
   - `/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/tui.md`
 - Extension factories must not start timers/watchers/processes. Start session resources in `session_start`; clean them in `session_shutdown`.
 - Guard UI calls with `ctx.hasUI`; guard TUI-specific custom components with `ctx.mode === "tui"`.
-- Use `/reload`-friendly locations while developing: `.pi/extensions/` or `~/.pi/agent/extensions/`. Use `pi -e ./path.ts` only for quick tests.
+- Tripwire workflow: keep source in `/Users/illwill/Code/pi-tripwire`; activate per project with `pi install -l /Users/illwill/Code/pi-tripwire`; use `/reload` in the target project after edits.
+- Do not copy Tripwire into `.pi/extensions/` or `~/.pi/agent/extensions/` during normal development. That creates duplicate active copies.
+- Do not install Tripwire globally unless the user explicitly wants it in every Pi project.
+- Use `pi -e ./extensions/tripwire/index.ts` only for quick one-off tests.
 - Keep sensitive process data out of LLM context. Footer/status UI is fine; do not inject full command lines or env into messages unless the user asks.
 
 ## Detection model
@@ -58,7 +61,6 @@ extensions/
     index.ts        # Pi package entrypoint; keeps displayed extension name as tripwire
 src/
   index.ts          # extension implementation and lifecycle wiring
-  scan.ts           # platform scan orchestration
   lsof.ts           # lsof execution + parser
   classify.ts       # Pi-spawned relevance rules and label heuristics
   format.ts         # footer/status formatting and future origin colors
@@ -70,6 +72,9 @@ src/
 ## Development expectations
 
 - TypeScript, dependency-light. Use Node built-ins and Pi-provided packages unless a dependency earns its keep.
+- Before committing/releasing run `npm run check`.
+- `npm run check` runs tests, TypeScript typecheck, and production audit (`npm audit --omit=dev`).
+- Pi does not require a special lint/test command for packages; our repo owns its release gate.
 - Parser/classifier/formatter should be pure functions and easy to test with fixture strings.
 - Keep timers idempotent; never leak intervals across `/reload`, `/new`, `/resume`, `/fork`, or shutdown.
 - Keep scans cheap. Default refresh should be around 2–5 seconds, plus immediate refresh after bash activity.

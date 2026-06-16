@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildExportPrelude, shellQuote } from "./shell.js";
+import { buildExportPrelude, shellQuote } from "./shell.ts";
 
 test("shellQuote handles apostrophes", () => {
   assert.equal(shellQuote("it's ok"), `'it'"'"'s ok'`);

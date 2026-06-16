@@ -220,17 +220,28 @@ Postpone until MVP feels solid:
 - Smarter labels for `node` wrappers (`vite`, `next`, `astro`, etc.).
 - Open/copy/kill actions only if we explicitly choose to become more than a footer indicator.
 
-## Sharing idiomatically
+## Sharing and local workflow
 
-Build it package-shaped from the start, but share it lightly at first:
+Build it package-shaped from the start, but keep one source repo.
 
-1. **Development**: run with `pi -e ./extensions/tripwire/index.ts` for quick tests.
-2. **Local reload workflow**: install/copy into `.pi/extensions/tripwire/index.ts` or `~/.pi/agent/extensions/tripwire/index.ts`.
-3. **Share with others**: add a `package.json` `pi.extensions` manifest and install from git:
+1. **Source of truth**: `/Users/illwill/Code/pi-tripwire`.
+2. **Personal project-local activation**:
+   ```sh
+   cd /path/to/project-that-needs-tripwire
+   pi install -l /Users/illwill/Code/pi-tripwire
+   ```
+3. **Development**: edit `/Users/illwill/Code/pi-tripwire`, run `npm run check`, then `/reload` in the target Pi project.
+4. **Avoid duplicates**: do not copy Tripwire into `.pi/extensions/` or `~/.pi/agent/extensions/` during normal development.
+5. **Quick one-off test**: run `pi -e ./extensions/tripwire/index.ts`.
+6. **Share with others**: push the repo to GitHub and install from git:
    ```sh
    pi install git:github.com/<user>/pi-tripwire
    ```
-4. **npm later** only if it becomes generally useful and we want versioned public maintenance.
+7. **Team/project pin**:
+   ```sh
+   pi install -l git:github.com/<user>/pi-tripwire@v0.1.0
+   ```
+8. **npm later** only if it becomes generally useful and we want versioned public maintenance.
 
 ## Open questions
 
