@@ -47,7 +47,7 @@ What we should change this pass:
 
 ## MVP definition
 
-- [x] Package-shaped repo scaffold: `package.json`, `tsconfig.json`, `tripwire/`, tests.
+- [x] Package-shaped repo scaffold: `package.json`, `tsconfig.json`, `extensions/tripwire/`, tests.
 - [x] Pi extension entrypoint exports `default function (pi: ExtensionAPI)`.
 - [x] `session_start`: initialize state, start one scan interval, render initial status.
 - [x] `session_shutdown`: clear interval and clear `ctx.ui.setStatus("tripwire", undefined)`.
@@ -150,19 +150,19 @@ Rules:
 
 ## Suggested source layout
 
+Keep this small extension colocated under its Pi entrypoint:
+
 ```text
 extensions/
   tripwire/
-    index.ts        # Pi package entrypoint; makes Pi display extension name as tripwire
-tripwire/
-  index.ts          # extension lifecycle wiring
-  lsof.ts           # lsof adapter and parser
-  env.ts            # read only PI_TRIPWIRE_* metadata for pid
-  classify.ts       # current-session attribution and labels
-  format.ts         # footer text, colors, OSC 8 links
-  config.ts         # hardcoded defaults for now
-  types.ts          # shared types
-  *.test.ts
+    index.ts        # Pi package entrypoint and lifecycle wiring
+    lsof.ts         # lsof adapter and parser
+    env.ts          # read only PI_TRIPWIRE_* metadata for pid
+    classify.ts     # current-session attribution and labels
+    format.ts       # footer text, colors, OSC 8 links
+    config.ts       # hardcoded defaults for now
+    types.ts        # shared types
+    *.test.ts
 ```
 
 ## Implementation phases
@@ -245,7 +245,7 @@ Keep the Pi-facing entrypoint stable when possible:
 extensions/tripwire/index.ts
 ```
 
-The internal implementation path can change, for example from `tripwire/index.ts` to another package-internal location, as long as `extensions/tripwire/index.ts` and `package.json` are updated together.
+The extension implementation is intentionally colocated at `extensions/tripwire/`. If we ever split internals out again, keep `extensions/tripwire/index.ts` and `package.json` updated together.
 
 Package installs follow the `pi.extensions` manifest, so local/git/npm package users should update cleanly after `/reload` or `pi update`. Direct file installs to old paths are the only compatibility risk. We do not recommend direct file installs except one-off `pi -e` testing.
 
