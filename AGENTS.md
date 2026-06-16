@@ -14,7 +14,7 @@ hugo:1313 node:5173 python:8000
 
 ## Product principles
 
-- **Signal over surveillance.** MVP shows only server/listener processes spawned by Pi agent tool calls. Human-started and external/project processes are second-pass ideas.
+- **Signal over surveillance.** MVP shows only server/listener processes spawned by Pi agent tool calls. Human-started current-project listeners (for example `hugo server` started in another terminal) are a second-pass feature.
 - **Default footer stays sacred.** Prefer `ctx.ui.setStatus("tripwire", ...)`; do not replace Pi’s whole footer with `setFooter()` unless we have a strong reason.
 - **Invisible when quiet.** If nothing relevant is listening, clear the status entirely.
 - **Read-only observer.** Tripwire never kills processes, opens network connections, or changes project files as part of scanning.
@@ -48,8 +48,9 @@ Preferred MVP approach:
 5. Scan listeners periodically and after tool calls using a small cross-platform adapter:
    - Use `lsof` where available.
    - Add `ss`/Linux fallback instead of making Tripwire feel macOS-specific.
-6. MVP includes only this Pi session / agent-spawned listeners. Human/user-spawned and other-project listeners are post-MVP.
-7. Render compact labels as `<process>:<port>` in the footer, with no visible `Tripwire` prefix. Use color for origin later instead of adding `@project` text.
+6. MVP includes only this Pi session / agent-spawned listeners. Human/user-spawned current-project listeners and other-project listeners are post-MVP.
+7. Second pass should detect listeners whose cwd is under current `ctx.cwd` and color them differently from agent-spawned, while keeping labels as `<process>:<port>`.
+8. Render compact labels as `<process>:<port>` in the footer, with no visible `Tripwire` prefix. Use color for origin later instead of adding `@project` text.
 
 ## Code shape we want
 

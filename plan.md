@@ -8,7 +8,7 @@ MVP: **show only localhost server ports spawned by Pi agent tool calls**, as a c
 hugo:1313 node:5173 python:8000
 ```
 
-Human-started processes, external terminals, current-project inference, and other-project colors are postponed.
+Human-started processes, external terminals, current-project inference, and other-project colors are postponed. Important: a Hugo server started in another terminal will **not** show in MVP unless it was spawned by a Pi agent tool call.
 
 ## Baseline: `localhost-ports.ts`
 
@@ -212,9 +212,28 @@ src/
 
 Postpone until MVP feels solid:
 
+### Human/external project listeners
+
+We do want this, but not in the first implementation.
+
+Scenario: the user starts `hugo server` in another terminal. Tripwire should be able to show it **when it is related to the current Pi project**, even though Pi did not spawn it.
+
+Proposed rules:
+
+- If listener cwd is under current `ctx.cwd`, show it as current-project/human/external with a different color from agent-spawned.
+- If listener cwd is under a known code root but not current `ctx.cwd`, optionally show as other-project in a dim color or hide by default.
+- If cwd cannot be read, keep it hidden unless it has a Pi marker.
+- Baseline listeners are okay to show if they are current-project listeners; baseline should mainly suppress unrelated system noise.
+
+Implementation notes:
+
+- Add per-pid cwd lookup (`lsof -a -p <pid> -d cwd -Fn` or platform equivalent).
+- Add `source: "agent-session" | "current-project" | "other-project"` classification.
+- Keep footer labels unchanged (`hugo:1313`); only color changes.
+
+Other second-pass items:
+
 - Human-run shell commands inside Pi, colored differently.
-- External/current-project listeners, colored muted/dim.
-- Other-project listener visibility.
 - `/tripwire` debug command with pid/cwd/why details.
 - Config file for ignore ports/processes and display choices.
 - Smarter labels for `node` wrappers (`vite`, `next`, `astro`, etc.).
