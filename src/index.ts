@@ -1,12 +1,12 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { randomUUID } from "node:crypto";
 import { classifyListeners } from "./classify.js";
 import { DEFAULT_CONFIG, TRIPWIRE_ENV } from "./config.js";
 import { readTripwireMarker } from "./env.js";
 import { formatFooterStatus } from "./format.js";
 import { LsofScanner } from "./lsof.js";
 import { diffPids, pruneDeadPids, snapshotPids } from "./process.js";
+import { deriveTripwireSessionId } from "./session.js";
 import { buildExportPrelude } from "./shell.js";
 import type { TripwireMarker } from "./types.js";
 
@@ -14,7 +14,7 @@ export default function tripwire(pi: ExtensionAPI) {
   const config = DEFAULT_CONFIG;
   const scanner = new LsofScanner(config);
 
-  let sessionId = randomUUID();
+  let sessionId = "";
   let interval: ReturnType<typeof setInterval> | undefined;
   let disposed = false;
   let refreshInFlight = false;
@@ -47,9 +47,17 @@ export default function tripwire(pi: ExtensionAPI) {
     setTimeout(() => void refresh(ctx), delayMs).unref?.();
   }
 
+  function deriveSessionId(ctx: ExtensionContext): string {
+    const sessionFile = ctx.sessionManager.getSessionFile();
+    return deriveTripwireSessionId({
+      ...(sessionFile ? { sessionFile } : {}),
+      cwd: ctx.cwd,
+    });
+  }
+
   pi.on("session_start", (_event, ctx) => {
     disposed = false;
-    sessionId = randomUUID();
+    sessionId = deriveSessionId(ctx);
     pendingSnapshots.clear();
     agentPids.clear();
 

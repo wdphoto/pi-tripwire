@@ -37,7 +37,7 @@ Preferred MVP approach:
 
 1. On `session_start`, capture a baseline of current TCP listeners.
 2. Track Pi-launched shell commands from the `tool_call` / `tool_result` lifecycle.
-3. Prefer a hidden env marker for robust attribution when possible:
+3. Prefer a hidden env marker for robust attribution when possible. `PI_TRIPWIRE_SESSION` should be derived from Pi's session file so `/reload` does not orphan already-running servers:
    - `PI_TRIPWIRE_SESSION`
    - `PI_TRIPWIRE_CWD`
    - `PI_TRIPWIRE_ACTOR=agent`

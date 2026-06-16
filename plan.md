@@ -181,7 +181,7 @@ src/
 
 ### Phase 2 — Pi-spawn attribution
 
-- [x] Generate per-extension/per-session id on `session_start`.
+- [x] Generate stable per-Pi-session id on `session_start` from Pi session file, so `/reload` does not orphan existing servers.
 - [x] Mutate agent `bash` tool calls to export `PI_TRIPWIRE_*` markers.
 - [x] Read marker metadata for listener PIDs.
 - [x] Filter to current session + actor `agent`.
@@ -202,6 +202,7 @@ src/
 - [ ] Manual: agent starts `python3 -m http.server 8000 &` => `python:8000` appears.
 - [ ] Manual: agent starts `hugo server -D --port 1313 &` => `hugo:1313` appears.
 - [ ] Manual: unrelated pre-existing listener stays hidden.
+- [ ] Manual: `/reload` keeps showing already-spawned marked servers from the same Pi session.
 - [ ] Manual: server exits => footer clears on next scan.
 
 ## Second-pass ideas
