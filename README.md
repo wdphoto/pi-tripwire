@@ -14,26 +14,48 @@ hugo:1313 node:5173 python:8000
 
 No prefix. No process manager. No external/human-started process inference yet.
 
+## Install for yourself
+
+From this checkout:
+
+```sh
+pi install /Users/illwill/Code/pi-tripwire
+```
+
+That installs this repo as a user Pi package, so Tripwire loads in future Pi sessions. Use `/reload` in an existing Pi session or restart Pi.
+
+Check installed packages:
+
+```sh
+pi list
+```
+
+Remove it:
+
+```sh
+pi remove /Users/illwill/Code/pi-tripwire
+```
+
 ## Development
 
-Quick test:
+Quick one-off test without installing:
 
 ```sh
 pi -e ./src/index.ts
 ```
 
-Reload-friendly local install:
+Normal local development loop:
 
 ```sh
-mkdir -p .pi/extensions/tripwire
-cp -R src package.json .pi/extensions/tripwire/
-# then start pi from this project and use /reload while iterating
+npm test
+npm run typecheck
+# edit files, then use /reload in Pi
 ```
 
 Package-shaped git install later:
 
 ```sh
-pi install git:github.com/<user>/pi-tripwire
+pi install git:github.com/<user>/pi-tripwire@v0.1.0
 ```
 
 ## Design
