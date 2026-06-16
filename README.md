@@ -1,6 +1,6 @@
 # Tripwire
 
-Tripwire is a tiny Pi extension that shows localhost servers started by the Pi agent in the footer.
+Tripwire is an extension for [Pi](https://pi.dev) that is triggered by the processes your agents spins up in the background. It helps me troubleshoot when the agent isn't even on the same server or session as me.
 
 Example:
 
@@ -12,16 +12,23 @@ It is meant to answer: “what local server did the agent start for me?”
 
 ## Install
 
-Install the latest release from GitHub:
+Install from npm:
 
 ```sh
-pi install git:github.com/wdphoto/pi-tripwire@v0.0.3
+pi install npm:pi-tripwire
 ```
 
-Or install the latest `main`:
+Or install from GitHub:
 
 ```sh
 pi install git:github.com/wdphoto/pi-tripwire
+```
+
+Pinned versions work for either source:
+
+```sh
+pi install npm:pi-tripwire@0.0.3
+pi install git:github.com/wdphoto/pi-tripwire@v0.0.3
 ```
 
 Then restart Pi or run:
@@ -36,7 +43,9 @@ If you only want Tripwire in one project:
 
 ```sh
 cd /path/to/project
-pi install -l git:github.com/wdphoto/pi-tripwire@v0.0.3
+pi install -l npm:pi-tripwire
+# or
+pi install -l git:github.com/wdphoto/pi-tripwire
 ```
 
 Then run `/reload` in Pi.

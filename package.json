@@ -4,13 +4,26 @@
   "description": "Pi extension that shows agent-spawned localhost servers in the footer.",
   "license": "MIT",
   "type": "module",
-  "private": true,
+  "homepage": "https://github.com/wdphoto/pi-tripwire#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wdphoto/pi-tripwire.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wdphoto/pi-tripwire/issues"
+  },
   "keywords": [
     "pi-package",
     "pi",
     "pi-extension",
     "localhost",
     "footer"
+  ],
+  "files": [
+    "extensions/tripwire/**/*.ts",
+    "!extensions/tripwire/**/*.test.ts",
+    "README.md",
+    "LICENSE"
   ],
   "pi": {
     "extensions": [
@@ -23,21 +36,16 @@
     "check": "npm test && npm run typecheck && npm audit --omit=dev"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*"
+    "@earendil-works/pi-coding-agent": "*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.0",
-    "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*"
+    "@earendil-works/pi-coding-agent": "*"
   },
   "peerDependenciesMeta": {
     "@earendil-works/pi-coding-agent": {
-      "optional": true
-    },
-    "@earendil-works/pi-tui": {
       "optional": true
     }
   }

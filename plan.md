@@ -277,3 +277,41 @@ Build it package-shaped from the start, but keep one source repo.
 ## Open questions
 
 1. Is command mutation with env exports acceptable, or should we wrap the bash tool with `createBashTool(...spawnHook...)` for cleaner env injection?
+
+## Next review notes
+
+Captured before reboot:
+
+- Review current Tripwire code for idiomatic Pi extension usage and cleanup opportunities.
+- Consider config options, especially display controls, ignore lists, refresh interval, and whether human/current-project listeners are enabled by default.
+- Consider a `/tripwire toggle` command that temporarily hides/disables the Tripwire footer status without uninstalling the extension.
+- Consider a more verbose `/tripwire` command/debug view that lists listener processes across sessions/terminals with attribution details.
+- Revisit second-pass attribution for human-started processes outside Pi: classify and show `agent` vs `human/current-project` while keeping compact footer labels.
+
+## Return-to-this checklist
+
+Captured after running `pi update` to Pi `0.79.6`:
+
+1. Manual QA Tripwire against updated Pi:
+   - Agent starts `python3 -m http.server 8000 &` => footer shows `python:8000`.
+   - Agent starts `hugo server -D --port 1313 &` => footer shows `hugo:1313`.
+   - Agent starts a Node/Vite dev server => footer shows compact `node:<port>` or better label.
+   - Unrelated pre-existing listeners stay hidden.
+   - `/reload` keeps showing already-spawned marked servers from the same Pi session.
+   - Server exit clears footer on the next scan.
+2. Update local dev dependency/lock to match the globally updated Pi version when useful. Global Pi is `0.79.6`; current local lock was observed at `@earendil-works/pi-coding-agent@0.79.4`.
+3. Re-evaluate env injection approach:
+   - Current MVP mutates built-in `bash` tool calls by prepending `export PI_TRIPWIRE_*` lines.
+   - Pi docs now document `createBashTool(..., { spawnHook })`, which may be cleaner but requires wrapping/overriding the built-in bash tool.
+   - Keep current mutation for MVP unless manual QA shows brittleness.
+4. Finish test checklist:
+   - More `lsof` parser fixtures for IPv4, IPv6, wildcard host, localhost.
+   - Attribution tests for current session shown, other session hidden, unmarked hidden.
+   - Formatter edge tests for clickable labels, overflow, and truncation if/when width limits are added.
+5. Release hygiene:
+   - If manual QA passes, commit current packaging/docs changes as maintenance work.
+   - Bump/publish only if we want a new public release beyond `0.0.3`.
+6. Post-MVP: human/current-project listeners:
+   - Detect listener cwd under current `ctx.cwd`.
+   - Keep labels as `<process>:<port>` and use color for provenance.
+   - Keep unrelated listeners hidden by default.

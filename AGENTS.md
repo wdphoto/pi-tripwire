@@ -74,6 +74,8 @@ extensions/
 - TypeScript, dependency-light. Use Node built-ins and Pi-provided packages unless a dependency earns its keep.
 - Before committing/releasing run `npm run check`.
 - `npm run check` runs tests, TypeScript typecheck, and production audit (`npm audit --omit=dev`).
+- Maintain both distribution paths going forward: GitHub installs (`pi install git:github.com/wdphoto/pi-tripwire`) and npm installs (`pi install npm:pi-tripwire`) should stay valid.
+- For releases, keep GitHub and npm in sync: update `version`, README install examples, package metadata/files, publish npm, tag/push the matching GitHub release/tag, and verify with `npm view pi-tripwire version` plus a GitHub install reference.
 - Pi does not require a special lint/test command for packages; our repo owns its release gate.
 - Parser/classifier/formatter should be pure functions and easy to test with fixture strings.
 - Keep timers idempotent; never leak intervals across `/reload`, `/new`, `/resume`, `/fork`, or shutdown.
