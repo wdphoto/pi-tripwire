@@ -1,7 +1,7 @@
 import type { TripwireConfig } from "./types.ts";
 
 export const DEFAULT_CONFIG: TripwireConfig = {
-  refreshMs: 3_000,
+  refreshMs: 10_000,
   scanTimeoutMs: 3_000,
   maxFooterItems: 5,
   statusKey: "tripwire",

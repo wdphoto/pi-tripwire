@@ -79,7 +79,7 @@ tripwire/
 - Pi does not require a special lint/test command for packages; our repo owns its release gate.
 - Parser/classifier/formatter should be pure functions and easy to test with fixture strings.
 - Keep timers idempotent; never leak intervals across `/reload`, `/new`, `/resume`, `/fork`, or shutdown.
-- Keep scans cheap. Default refresh should be around 2–5 seconds, plus immediate refresh after bash activity.
+- Keep scans cheap. Default refresh is currently 10 seconds, plus immediate refresh after bash activity.
 - The footer text is plain labels (`hugo:1313`). MVP may use one Pi-spawned color only; later origin is conveyed by color, not noisy suffixes.
 - The footer line must be ANSI-width safe if we color it. Use `truncateToWidth` / `visibleWidth` from `@earendil-works/pi-tui` when needed.
 
