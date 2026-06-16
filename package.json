@@ -18,7 +18,7 @@
     ]
   },
   "scripts": {
-    "test": "tsx --test \"src/**/*.test.ts\"",
+    "test": "tsx --test \"tripwire/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "check": "npm test && npm run typecheck && npm audit --omit=dev"
   },

@@ -32,7 +32,7 @@ hugo:1313 node:5173 python:8000
 - Do not copy Tripwire into `.pi/extensions/` or `~/.pi/agent/extensions/` during normal development. That creates duplicate active copies.
 - Do not install Tripwire globally unless the user explicitly wants it in every Pi project.
 - Use `pi -e ./extensions/tripwire/index.ts` only for quick one-off tests.
-- Keep the Pi-facing entrypoint `extensions/tripwire/index.ts` stable when possible. Internal `src/` paths can change if the wrapper and package manifest are updated together.
+- Keep the Pi-facing entrypoint `extensions/tripwire/index.ts` stable when possible. Internal implementation paths can change if the wrapper and package manifest are updated together.
 - Keep sensitive process data out of LLM context. Footer/status UI is fine; do not inject full command lines or env into messages unless the user asks.
 
 ## Detection model
@@ -61,14 +61,14 @@ When implementation starts, prefer this structure:
 extensions/
   tripwire/
     index.ts        # Pi package entrypoint; keeps displayed extension name as tripwire
-src/
+tripwire/
   index.ts          # extension implementation and lifecycle wiring
   lsof.ts           # lsof execution + parser
   classify.ts       # Pi-spawned relevance rules and label heuristics
   format.ts         # footer/status formatting and future origin colors
   config.ts         # defaults and config parsing
   types.ts          # shared types
-  __tests__/        # parser/classifier/formatter tests
+  *.test.ts         # parser/classifier/formatter tests
 ```
 
 ## Development expectations

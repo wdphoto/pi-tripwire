@@ -15,7 +15,7 @@
     "allowImportingTsExtensions": true
   },
   "include": [
-    "src/**/*.ts",
+    "tripwire/**/*.ts",
     "extensions/**/*.ts"
   ]
 }
