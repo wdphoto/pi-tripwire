@@ -28,7 +28,7 @@ hugo:1313 node:5173 python:8000
   - `/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/tui.md`
 - Extension factories must not start timers/watchers/processes. Start session resources in `session_start`; clean them in `session_shutdown`.
 - Guard UI calls with `ctx.hasUI`; guard TUI-specific custom components with `ctx.mode === "tui"`.
-- Tripwire workflow: keep source in `/Users/illwill/Code/pi-tripwire`; activate per project with `pi install -l /Users/illwill/Code/pi-tripwire`; use `/reload` in the target project after edits.
+- Tripwire workflow: keep one source checkout; activate per project with `pi install -l /path/to/pi-tripwire`; use `/reload` in the target project after edits.
 - Do not copy Tripwire into `.pi/extensions/` or `~/.pi/agent/extensions/` during normal development. That creates duplicate active copies.
 - Do not install Tripwire globally unless the user explicitly wants it in every Pi project.
 - Use `pi -e ./extensions/tripwire/index.ts` only for quick one-off tests.
@@ -85,7 +85,7 @@ tripwire/
 
 ## Prior art
 
-The first attempt is in `/Users/illwill/pi-backups/20260615-112439/pi-agent-full.tgz` at `agent/extensions/localhost-ports.ts`.
+The first attempt was a local backup prototype at `agent/extensions/localhost-ports.ts`.
 
 Useful ideas from it:
 - `ctx.ui.setStatus("localhost-ports", ...)` rather than custom footer replacement.

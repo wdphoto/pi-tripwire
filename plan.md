@@ -12,10 +12,9 @@ Human-started processes, external terminals, current-project inference, and othe
 
 ## Baseline: `localhost-ports.ts`
 
-Found in backup:
+Found in local backup prior art:
 
 ```text
-/Users/illwill/pi-backups/20260615-112439/pi-agent-full.tgz
 agent/extensions/localhost-ports.ts
 ```
 
@@ -256,22 +255,22 @@ Review this before any major path/name cleanup.
 
 Build it package-shaped from the start, but keep one source repo.
 
-1. **Source of truth**: `/Users/illwill/Code/pi-tripwire`.
+1. **Source of truth**: this Git checkout.
 2. **Personal project-local activation**:
    ```sh
    cd /path/to/project-that-needs-tripwire
-   pi install -l /Users/illwill/Code/pi-tripwire
+   pi install -l /path/to/pi-tripwire
    ```
-3. **Development**: edit `/Users/illwill/Code/pi-tripwire`, run `npm run check`, then `/reload` in the target Pi project.
+3. **Development**: edit the checkout, run `npm run check`, then `/reload` in the target Pi project.
 4. **Avoid duplicates**: do not copy Tripwire into `.pi/extensions/` or `~/.pi/agent/extensions/` during normal development.
 5. **Quick one-off test**: run `pi -e ./extensions/tripwire/index.ts`.
 6. **Share with others**: push the repo to GitHub and install from git:
    ```sh
-   pi install git:github.com/<user>/pi-tripwire
+   pi install git:github.com/wdphoto/pi-tripwire
    ```
 7. **Team/project pin**:
    ```sh
-   pi install -l git:github.com/<user>/pi-tripwire@v0.1.0
+   pi install -l git:github.com/wdphoto/pi-tripwire@v0.1.0
    ```
 8. **npm later** only if it becomes generally useful and we want versioned public maintenance.
 

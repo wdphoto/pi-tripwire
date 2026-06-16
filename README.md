@@ -14,40 +14,39 @@ hugo:1313 node:5173 python:8000
 
 No prefix. No process manager. No external/human-started process inference yet.
 
-## Personal project-local workflow
+## Installation
 
-Our preferred workflow is **one source repo, project-local activation**.
+Install from GitHub:
 
-Source of truth:
-
-```text
-/Users/illwill/Code/pi-tripwire
+```sh
+pi install git:github.com/wdphoto/pi-tripwire
 ```
 
-Enable Tripwire only in projects that need it:
+Or install project-locally so Tripwire only loads in one project:
 
 ```sh
 cd /path/to/project-that-needs-tripwire
-pi install -l /Users/illwill/Code/pi-tripwire
+pi install -l git:github.com/wdphoto/pi-tripwire
+```
+
+For local development, clone the repo and install that checkout:
+
+```sh
+git clone https://github.com/wdphoto/pi-tripwire.git
+cd /path/to/project-that-needs-tripwire
+pi install -l /path/to/pi-tripwire
 ```
 
 That writes a project-local package entry to `.pi/settings.json`. Pi loads Tripwire only for that project.
 
-Disable it for that project:
-
-```sh
-cd /path/to/project-that-has-tripwire
-pi remove -l /Users/illwill/Code/pi-tripwire
-```
-
-Avoid copying files into `.pi/extensions/` or `~/.pi/agent/extensions/`; that creates duplicate active copies. Edit only `/Users/illwill/Code/pi-tripwire`.
+Avoid copying files into `.pi/extensions/` or `~/.pi/agent/extensions/`; that creates duplicate active copies.
 
 ## Development loop
 
 Terminal A — edit/test the extension repo:
 
 ```sh
-cd /Users/illwill/Code/pi-tripwire
+cd /path/to/pi-tripwire
 npm run check
 ```
 
@@ -75,23 +74,23 @@ This repo is package-shaped. `package.json` exposes the extension with:
 }
 ```
 
-Once the repo is on GitHub, others can install latest `main`:
+Install latest `main`:
 
 ```sh
-pi install git:github.com/<user>/pi-tripwire
+pi install git:github.com/wdphoto/pi-tripwire
 ```
 
 Or a pinned stable tag:
 
 ```sh
-pi install git:github.com/<user>/pi-tripwire@v0.1.0
+pi install git:github.com/wdphoto/pi-tripwire@v0.1.0
 ```
 
 For project/team sharing, install the GitHub package project-locally:
 
 ```sh
 cd /path/to/project
-pi install -l git:github.com/<user>/pi-tripwire@v0.1.0
+pi install -l git:github.com/wdphoto/pi-tripwire@v0.1.0
 ```
 
 ## Release checklist
@@ -106,7 +105,7 @@ npm run check
 
 Then smoke-test in a Pi project:
 
-1. Install project-locally with `pi install -l /Users/illwill/Code/pi-tripwire`.
+1. Install project-locally with `pi install -l /path/to/pi-tripwire` or `pi install -l git:github.com/wdphoto/pi-tripwire`.
 2. Start/reload Pi.
 3. Ask the agent to start a local server.
 4. Confirm the footer shows only the compact port label, e.g. `python:8765`.
