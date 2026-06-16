@@ -15,7 +15,7 @@ It is meant to answer: “what local server did the agent start for me?”
 Install the latest release from GitHub:
 
 ```sh
-pi install git:github.com/wdphoto/pi-tripwire@v0.0.1
+pi install git:github.com/wdphoto/pi-tripwire@v0.0.2
 ```
 
 Or install the latest `main`:
@@ -36,7 +36,7 @@ If you only want Tripwire in one project:
 
 ```sh
 cd /path/to/project
-pi install -l git:github.com/wdphoto/pi-tripwire@v0.0.1
+pi install -l git:github.com/wdphoto/pi-tripwire@v0.0.2
 ```
 
 Then run `/reload` in Pi.
