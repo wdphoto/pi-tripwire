@@ -1,1 +1,1 @@
-export { default } from "../../tripwire/index.ts";
+export { default } from "../../src/index.ts";
