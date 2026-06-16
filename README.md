@@ -125,5 +125,5 @@ git push origin main --tags
 - Marks agent shell commands with hidden `PI_TRIPWIRE_*` env vars.
 - Scans TCP `LISTEN` ports and only displays listeners attributed to the current Pi session.
 - Uses OSC 8 links so labels can be opened as `http://localhost:<port>` in supported terminals.
-- Implementation lives in `src/`.
+- Implementation lives in `tripwire/`.
 - Pi core packages are peer dependencies and dev dependencies; they are optional peers so production installs do not bundle Pi itself.
