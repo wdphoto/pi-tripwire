@@ -1,20 +1,16 @@
 # Tripwire
 
-Tripwire is a Pi extension that shows localhost server ports spawned by Pi agent shell commands in the footer.
+Tripwire is a tiny Pi extension that shows localhost servers started by the Pi agent in the footer.
 
-It is the second pass on the old `localhost-ports.ts` prototype: same tiny footer idea, cleaner attribution and package shape.
-
-## Behavior
-
-If the agent starts a local server, Tripwire shows compact clickable labels in Pi's footer:
+Example:
 
 ```text
 hugo:1313 node:5173 python:8000
 ```
 
-No prefix. No process manager. No external/human-started process inference yet.
+It is meant to answer: “what local server did the agent start for me?”
 
-## Installation
+## Install
 
 Install from GitHub:
 
@@ -22,108 +18,42 @@ Install from GitHub:
 pi install git:github.com/wdphoto/pi-tripwire
 ```
 
-Or install project-locally so Tripwire only loads in one project:
+Then restart Pi or run:
 
-```sh
-cd /path/to/project-that-needs-tripwire
-pi install -l git:github.com/wdphoto/pi-tripwire
+```text
+/reload
 ```
 
-For local development, clone the repo and install that checkout:
+## Project-only install
 
-```sh
-git clone https://github.com/wdphoto/pi-tripwire.git
-cd /path/to/project-that-needs-tripwire
-pi install -l /path/to/pi-tripwire
-```
-
-That writes a project-local package entry to `.pi/settings.json`. Pi loads Tripwire only for that project.
-
-Avoid copying files into `.pi/extensions/` or `~/.pi/agent/extensions/`; that creates duplicate active copies.
-
-## Development loop
-
-Terminal A — edit/test the extension repo:
-
-```sh
-cd /path/to/pi-tripwire
-npm run check
-```
-
-Terminal B — run Pi from a project where Tripwire is installed project-locally:
-
-```sh
-cd /path/to/project-that-needs-tripwire
-pi
-# after edits, run /reload inside Pi
-```
-
-Quick one-off test without installing:
-
-```sh
-pi -e ./extensions/tripwire/index.ts
-```
-
-## Sharing from GitHub
-
-This repo is package-shaped. `package.json` exposes the extension with:
-
-```json
-"pi": {
-  "extensions": ["./extensions/tripwire/index.ts"]
-}
-```
-
-Install latest `main`:
-
-```sh
-pi install git:github.com/wdphoto/pi-tripwire
-```
-
-Or a pinned stable tag:
-
-```sh
-pi install git:github.com/wdphoto/pi-tripwire@v0.1.0
-```
-
-For project/team sharing, install the GitHub package project-locally:
+If you only want Tripwire in one project:
 
 ```sh
 cd /path/to/project
-pi install -l git:github.com/wdphoto/pi-tripwire@v0.1.0
+pi install -l git:github.com/wdphoto/pi-tripwire
 ```
 
-## Release checklist
+Then run `/reload` in Pi.
 
-Pi does not require a special lint/test command to release an extension package. It loads the `pi.extensions` manifest and executes the TypeScript entrypoint.
+## Local checkout install
 
-Our release gate is:
+If you cloned this repo and want Pi to load your local copy:
 
 ```sh
-npm run check
+pi install /path/to/pi-tripwire
 ```
 
-Then smoke-test in a Pi project:
-
-1. Install project-locally with `pi install -l /path/to/pi-tripwire` or `pi install -l git:github.com/wdphoto/pi-tripwire`.
-2. Start/reload Pi.
-3. Ask the agent to start a local server.
-4. Confirm the footer shows only the compact port label, e.g. `python:8765`.
-5. Confirm `/reload` still recognizes the already-running server.
-
-If sharing a stable release:
+Or project-only:
 
 ```sh
-git tag v0.1.0
-git push origin main --tags
+cd /path/to/project
+pi install -l /path/to/pi-tripwire
 ```
 
-## Design
+After editing the local checkout, run `/reload` in Pi.
 
-- Package entrypoint lives at `extensions/tripwire/index.ts` so Pi displays the extension as `tripwire`.
-- Uses `ctx.ui.setStatus("tripwire", ...)`, not a custom footer replacement.
-- Marks agent shell commands with hidden `PI_TRIPWIRE_*` env vars.
-- Scans TCP `LISTEN` ports and only displays listeners attributed to the current Pi session.
-- Uses OSC 8 links so labels can be opened as `http://localhost:<port>` in supported terminals.
-- Implementation lives in `tripwire/`.
-- Pi core packages are peer dependencies and dev dependencies; they are optional peers so production installs do not bundle Pi itself.
+## Notes
+
+Tripwire currently shows servers spawned by Pi agent shell commands. Servers you started yourself in another terminal are not shown yet.
+
+Tripwire only observes. It does not stop processes, restart them, or open browsers.
