@@ -232,6 +232,11 @@ Implementation notes:
 Other second-pass items:
 
 - Human-run shell commands inside Pi, colored differently.
+- tmux attribution support:
+  - Direct agent-spawned tmux sessions may work if `PI_TRIPWIRE_*` env markers are inherited.
+  - Existing tmux servers/windows may not inherit the current agent shell env, so listeners started there may be hidden or only caught by the weak PID-snapshot fallback.
+  - Future approach: detect tmux commands and explicitly propagate markers with `tmux set-environment`, `tmux new-session -e`, or a small helper/wrapper.
+  - Goal remains attribution, not process management: show tmux-started listeners only when we can prove this Pi agent/session caused them.
 - `/tripwire` debug command with pid/cwd/why details.
 - Config file for ignore ports/processes and display choices.
 - Smarter labels for `node` wrappers (`vite`, `next`, `astro`, etc.).
