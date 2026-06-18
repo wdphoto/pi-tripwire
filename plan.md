@@ -197,9 +197,10 @@ extensions/
 
 ### Phase 4 — tests/manual QA
 
-- [ ] Parser fixtures for lsof IPv4, IPv6, wildcard host, localhost.
-- [ ] Attribution tests: current session shown, other session hidden, unmarked hidden.
-- [ ] Formatter tests: clickable labels, overflow, truncation.
+- [x] Parser fixtures for lsof IPv4, IPv6, wildcard host, localhost.
+- [x] Attribution tests: current session shown, other session hidden, unmarked hidden.
+- [x] Formatter tests: clickable labels and overflow.
+- [ ] Formatter truncation tests if/when width limits are added.
 - [ ] Manual: agent starts `python3 -m http.server 8000 &` => `python:8000` appears.
 - [ ] Manual: agent starts `hugo server -D --port 1313 &` => `hugo:1313` appears.
 - [ ] Manual: unrelated pre-existing listener stays hidden.
@@ -269,15 +270,17 @@ Build it package-shaped from the start, but keep one source repo.
 3. **Development**: edit the checkout, run `npm run check`, then `/reload` in the target Pi project.
 4. **Avoid duplicates**: do not copy Tripwire into `.pi/extensions/` or `~/.pi/agent/extensions/` during normal development.
 5. **Quick one-off test**: run `pi -e ./extensions/tripwire/index.ts`.
-6. **Share with others**: push the repo to GitHub and install from git:
+6. **Share with others**: publish/keep current on npm and GitHub:
    ```sh
+   pi install npm:pi-tripwire
    pi install git:github.com/wdphoto/pi-tripwire
    ```
 7. **Team/project pin**:
    ```sh
-   pi install -l git:github.com/wdphoto/pi-tripwire@v0.1.0
+   pi install -l npm:pi-tripwire@0.0.4
+   pi install -l git:github.com/wdphoto/pi-tripwire@v0.0.4
    ```
-8. **npm later** only if it becomes generally useful and we want versioned public maintenance.
+8. **Release hygiene**: keep npm and GitHub tags/releases in sync for every public version.
 
 ## Open questions
 
@@ -304,18 +307,17 @@ Captured after running `pi update` to Pi `0.79.6`:
    - Unrelated pre-existing listeners stay hidden.
    - `/reload` keeps showing already-spawned marked servers from the same Pi session.
    - Server exit clears footer on the next scan.
-2. Update local dev dependency/lock to match the globally updated Pi version when useful. Global Pi is `0.79.6`; current local lock was observed at `@earendil-works/pi-coding-agent@0.79.4`.
+2. Update local dev dependency/lock to match the globally updated Pi version when useful. Global Pi is `0.79.6`; current local lock was observed at `@earendil-works/pi-coding-agent@0.79.4` during this review.
 3. Re-evaluate env injection approach:
    - Current MVP mutates built-in `bash` tool calls by prepending `export PI_TRIPWIRE_*` lines.
    - Pi docs now document `createBashTool(..., { spawnHook })`, which may be cleaner but requires wrapping/overriding the built-in bash tool.
    - Keep current mutation for MVP unless manual QA shows brittleness.
 4. Finish test checklist:
-   - More `lsof` parser fixtures for IPv4, IPv6, wildcard host, localhost.
-   - Attribution tests for current session shown, other session hidden, unmarked hidden.
-   - Formatter edge tests for clickable labels, overflow, and truncation if/when width limits are added.
+   - Formatter truncation tests if/when width limits are added.
+   - Manual Pi-agent QA for python/Hugo/Node plus `/reload` behavior.
 5. Release hygiene:
-   - If manual QA passes, commit current packaging/docs changes as maintenance work.
-   - Bump/publish only if we want a new public release beyond `0.0.3`.
+   - Publish `0.0.4` to npm, then keep the matching GitHub tag/release in sync.
+   - Verify with `npm view pi-tripwire version` and a GitHub install reference.
 6. Post-MVP: human/current-project listeners:
    - Detect listener cwd under current `ctx.cwd`.
    - Keep labels as `<process>:<port>` and use color for provenance.

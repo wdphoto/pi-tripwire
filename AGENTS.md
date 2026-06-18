@@ -39,13 +39,13 @@ hugo:1313 node:5173 python:8000
 
 Preferred MVP approach:
 
-1. On `session_start`, capture a baseline of current TCP listeners.
+1. On `session_start`, derive a stable session id and start with empty snapshot-owned PID state.
 2. Track Pi-launched shell commands from the `tool_call` / `tool_result` lifecycle.
 3. Prefer a hidden env marker for robust attribution when possible. `PI_TRIPWIRE_SESSION` should be derived from Pi's session file so `/reload` does not orphan already-running servers:
    - `PI_TRIPWIRE_SESSION`
    - `PI_TRIPWIRE_CWD`
    - `PI_TRIPWIRE_ACTOR=agent`
-4. Keep the previous snapshot-PID approach from the first attempt as useful prior art, but avoid misclassifying unrelated processes when possible.
+4. Keep the previous snapshot-PID approach only as a weak fallback for environments where env reads fail; avoid broadening it in ways that misclassify unrelated processes.
 5. Scan listeners periodically and after tool calls using a small cross-platform adapter:
    - Use `lsof` where available.
    - Add `ss`/Linux fallback instead of making Tripwire feel macOS-specific.

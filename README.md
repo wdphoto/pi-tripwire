@@ -1,6 +1,6 @@
 # Tripwire
 
-Tripwire is an extension for [Pi](https://pi.dev) that is triggered by the processes your agents spins up in the background. It helps me troubleshoot when the agent isn't even on the same server or session as me.
+Tripwire is an extension for [Pi](https://pi.dev) that is triggered by the processes your agent spins up in the background. It helps troubleshoot when the agent isn't even on the same server or session as you.
 
 Example:
 
@@ -8,7 +8,7 @@ Example:
 hugo:1313 node:5173 python:8000
 ```
 
-It is meant to answer: “what local server did the agent start for me?”
+It is meant to answer: “what local servers did the agent start for me?”
 
 ## Install
 
@@ -27,8 +27,8 @@ pi install git:github.com/wdphoto/pi-tripwire
 Pinned versions work for either source:
 
 ```sh
-pi install npm:pi-tripwire@0.0.3
-pi install git:github.com/wdphoto/pi-tripwire@v0.0.3
+pi install npm:pi-tripwire@0.0.4
+pi install git:github.com/wdphoto/pi-tripwire@v0.0.4
 ```
 
 Then restart Pi or run:

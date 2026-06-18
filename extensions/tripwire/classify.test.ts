@@ -13,6 +13,7 @@ test("classifyListeners keeps only current-session agent listeners", () => {
     { pid: 1, command: "hugo", port: 1313, protocol: "tcp" },
     { pid: 2, command: "node", port: 5173, protocol: "tcp" },
     { pid: 3, command: "python3", port: 8000, protocol: "tcp" },
+    { pid: 4, command: "ruby", port: 4567, protocol: "tcp" },
   ];
   const markers = new Map<number, TripwireMarker>([
     [1, { session: "current", actor: "agent" }],
