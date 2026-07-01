@@ -25,8 +25,17 @@ export function diffPids(before: Set<number>, after: Set<number>): Set<number> {
   return added;
 }
 
-export function pruneDeadPids(tracked: Set<number>, live: Set<number>): void {
+export function isPidLive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+export function pruneDeadPids(tracked: Set<number>): void {
   for (const pid of tracked) {
-    if (!live.has(pid)) tracked.delete(pid);
+    if (!isPidLive(pid)) tracked.delete(pid);
   }
 }

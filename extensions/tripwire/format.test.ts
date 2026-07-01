@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatFooterStatus, osc8 } from "./format.ts";
+import { formatFooterStatus, osc8, sanitizeFooterLabel, truncateLabel } from "./format.ts";
 import type { TrackedListener } from "./types.ts";
 
 const theme = {
@@ -11,6 +11,15 @@ const theme = {
 
 test("osc8 wraps a label in a hyperlink", () => {
   assert.equal(osc8("http://localhost:1313", "hugo:1313"), "\x1b]8;;http://localhost:1313\x1b\\hugo:1313\x1b]8;;\x1b\\");
+});
+
+test("sanitizeFooterLabel removes control characters", () => {
+  assert.equal(sanitizeFooterLabel("\u001bnode\u0007"), "node");
+  assert.equal(sanitizeFooterLabel("\u0000"), "process");
+});
+
+test("truncateLabel caps long labels", () => {
+  assert.equal(truncateLabel("development-server", 8), "devel...");
 });
 
 test("formatFooterStatus renders labels without prefix", () => {
@@ -27,7 +36,7 @@ test("formatFooterStatus renders labels without prefix", () => {
   ];
 
   assert.equal(
-    formatFooterStatus(entries, theme, { maxFooterItems: 5 }),
+    formatFooterStatus(entries, theme, { maxFooterItems: 5, maxLabelWidth: 24 }),
     "\x1b]8;;http://localhost:1313\x1b\\<accent>hugo:1313</accent>\x1b]8;;\x1b\\",
   );
 });
@@ -43,6 +52,6 @@ test("formatFooterStatus adds overflow", () => {
     source: "env" as const,
   }));
 
-  const formatted = formatFooterStatus(entries, theme, { maxFooterItems: 2 });
+  const formatted = formatFooterStatus(entries, theme, { maxFooterItems: 2, maxLabelWidth: 24 });
   assert.match(formatted ?? "", /<dim>\+1<\/dim>$/);
 });

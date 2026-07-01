@@ -2,9 +2,14 @@ import type { TripwireConfig } from "./types.ts";
 
 export const DEFAULT_CONFIG: TripwireConfig = {
   refreshMs: 10_000,
+  refreshDebounceMs: 250,
   scanTimeoutMs: 3_000,
+  pidSnapshotTimeoutMs: 500,
   maxFooterItems: 5,
+  maxLabelWidth: 24,
   statusKey: "tripwire",
+  enablePidSnapshotFallback: false,
+  enableCommandPreludeFallback: true,
 };
 
 export const TRIPWIRE_ENV = {

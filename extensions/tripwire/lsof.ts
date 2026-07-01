@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import type { ScanResult } from "./scanner.ts";
 import type { RawListener, TripwireConfig } from "./types.ts";
 
 const execFileAsync = promisify(execFile);
@@ -41,15 +42,21 @@ export function parseLsofListeners(output: string): RawListener[] {
 export class LsofScanner {
   constructor(private readonly config: Pick<TripwireConfig, "scanTimeoutMs">) {}
 
-  async scan(): Promise<RawListener[]> {
+  async scan(signal?: AbortSignal): Promise<RawListener[]> {
+    return (await this.scanResult(signal)).listeners;
+  }
+
+  async scanResult(signal?: AbortSignal): Promise<ScanResult> {
     try {
       const { stdout } = await execFileAsync("lsof", ["-nP", "-iTCP", "-sTCP:LISTEN"], {
         timeout: this.config.scanTimeoutMs,
         maxBuffer: 1024 * 1024,
+        ...(signal ? { signal } : {}),
       });
-      return parseLsofListeners(stdout);
-    } catch {
-      return [];
+      return { listeners: parseLsofListeners(stdout), ok: true };
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      return { listeners: [], ok: false, ...(code === "ENOENT" ? { unavailable: true } : {}) };
     }
   }
 }

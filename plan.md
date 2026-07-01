@@ -178,15 +178,17 @@ extensions/
 
 - [x] Implement pure `parseLsofListeners(output)` with fixtures.
 - [x] Implement `LsofScanner` with timeout.
-- [ ] Add Linux fallback only if needed after first manual test.
+- [x] Add Linux `ss` fallback behind scanner adapter.
 
 ### Phase 2 — Pi-spawn attribution
 
 - [x] Generate stable per-Pi-session id on `session_start` from Pi session file, so `/reload` does not orphan existing servers.
-- [x] Mutate agent `bash` tool calls to export `PI_TRIPWIRE_*` markers.
+- [x] Prefer Pi's native `createBashTool(..., { spawnHook })` bash override for hidden env marker injection when the active bash tool is still built-in.
+- [x] Keep command-prelude injection only as a compatibility fallback when another extension already overrides bash, so Tripwire does not clobber that extension.
 - [x] Read marker metadata for listener PIDs.
 - [x] Filter to current session + actor `agent`.
 - [x] Add fallback notes/tests for unavailable env reads.
+- [x] Keep PID snapshot fallback disabled by default; env marker is the default proof path.
 
 ### Phase 3 — footer status
 
@@ -201,9 +203,11 @@ extensions/
 - [x] Attribution tests: current session shown, other session hidden, unmarked hidden.
 - [x] Formatter tests: clickable labels and overflow.
 - [ ] Formatter truncation tests if/when width limits are added.
-- [ ] Manual: agent starts `python3 -m http.server 8000 &` => `python:8000` appears.
+- [x] Manual-ish scanner sanity: env-marked `python3 -m http.server 8765` is classified as `python:8765` via env marker on macOS.
+- [ ] Manual in Pi: agent starts `python3 -m http.server 8000 &` => `python:8000` appears.
 - [ ] Manual: agent starts `hugo server -D --port 1313 &` => `hugo:1313` appears.
-- [ ] Manual: unrelated pre-existing listener stays hidden.
+- [x] Manual-ish scanner sanity: unmarked `python3 -m http.server 8766` stays hidden.
+- [ ] Manual in Pi: unrelated pre-existing listener stays hidden.
 - [ ] Manual: `/reload` keeps showing already-spawned marked servers from the same Pi session.
 - [ ] Manual: server exits => footer clears on next scan.
 
@@ -277,14 +281,17 @@ Build it package-shaped from the start, but keep one source repo.
    ```
 7. **Team/project pin**:
    ```sh
-   pi install -l npm:pi-tripwire@0.0.4
-   pi install -l git:github.com/wdphoto/pi-tripwire@v0.0.4
+   pi install -l npm:pi-tripwire@0.0.5
+   pi install -l git:github.com/wdphoto/pi-tripwire@v0.0.5
    ```
 8. **Release hygiene**: keep npm and GitHub tags/releases in sync for every public version.
 
 ## Open questions
 
-1. Is command mutation with env exports acceptable, or should we wrap the bash tool with `createBashTool(...spawnHook...)` for cleaner env injection?
+1. Is the native bash override acceptable as the default injection path?
+   - Current decision: use `createBashTool(..., { spawnHook })` when bash is built-in, so markers are hidden in the child process env instead of being prepended to visible command text.
+   - If another extension already owns `bash`, Tripwire does not override it; it falls back to command-prelude injection for compatibility.
+   - Follow-up risk: confirm this preserves enough of Pi's built-in bash settings/rendering for real users, especially custom shell path or command prefix settings.
 
 ## Next review notes
 
@@ -309,14 +316,14 @@ Captured after running `pi update` to Pi `0.79.6`:
    - Server exit clears footer on the next scan.
 2. Update local dev dependency/lock to match the globally updated Pi version when useful. Global Pi is `0.79.6`; current local lock was observed at `@earendil-works/pi-coding-agent@0.79.4` during this review.
 3. Re-evaluate env injection approach:
-   - Current MVP mutates built-in `bash` tool calls by prepending `export PI_TRIPWIRE_*` lines.
-   - Pi docs now document `createBashTool(..., { spawnHook })`, which may be cleaner but requires wrapping/overriding the built-in bash tool.
-   - Keep current mutation for MVP unless manual QA shows brittleness.
+   - Current MVP now overrides built-in bash with `createBashTool(..., { spawnHook })` and injects env markers natively.
+   - If bash is already overridden by another extension, Tripwire avoids clobbering it and uses the older command-prelude fallback.
+   - Manual QA should confirm built-in bash UX remains acceptable and user shell settings are not unexpectedly lost.
 4. Finish test checklist:
    - Formatter truncation tests if/when width limits are added.
    - Manual Pi-agent QA for python/Hugo/Node plus `/reload` behavior.
 5. Release hygiene:
-   - Publish `0.0.4` to npm, then keep the matching GitHub tag/release in sync.
+   - Publish `0.0.5` to npm, then keep the matching GitHub tag/release in sync.
    - Verify with `npm view pi-tripwire version` and a GitHub install reference.
 6. Post-MVP: human/current-project listeners:
    - Detect listener cwd under current `ctx.cwd`.

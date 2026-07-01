@@ -12,6 +12,14 @@ export function listenerUrl(port: number): string {
   return `http://localhost:${port}`;
 }
 
+export function isLocalHost(host: string | undefined): boolean {
+  if (!host) return true;
+  const normalized = host.toLowerCase();
+  if (["*", "localhost", "0.0.0.0", "::", "[::]"].includes(normalized)) return true;
+  if (normalized === "::1" || normalized === "[::1]") return true;
+  return normalized.startsWith("127.");
+}
+
 export function classifyListeners(options: {
   listeners: RawListener[];
   markers: Map<number, TripwireMarker>;
@@ -22,6 +30,8 @@ export function classifyListeners(options: {
   const seen = new Set<string>();
 
   for (const listener of options.listeners) {
+    if (!isLocalHost(listener.host)) continue;
+
     const marker = options.markers.get(listener.pid);
     const fromEnv = marker?.session === options.sessionId && marker.actor === "agent";
     const label = labelForCommand(listener.command);

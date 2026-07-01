@@ -23,7 +23,12 @@ export type TrackedListener = RawListener & {
 
 export type TripwireConfig = {
   refreshMs: number;
+  refreshDebounceMs: number;
   scanTimeoutMs: number;
+  pidSnapshotTimeoutMs: number;
   maxFooterItems: number;
+  maxLabelWidth: number;
   statusKey: string;
+  enablePidSnapshotFallback: boolean;
+  enableCommandPreludeFallback: boolean;
 };

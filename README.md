@@ -27,8 +27,8 @@ pi install git:github.com/wdphoto/pi-tripwire
 Pinned versions work for either source:
 
 ```sh
-pi install npm:pi-tripwire@0.0.4
-pi install git:github.com/wdphoto/pi-tripwire@v0.0.4
+pi install npm:pi-tripwire@0.0.5
+pi install git:github.com/wdphoto/pi-tripwire@v0.0.5
 ```
 
 Then restart Pi or run:
@@ -70,5 +70,7 @@ After editing the local checkout, run `/reload` in Pi.
 ## Notes
 
 Tripwire currently shows servers spawned by Pi agent shell commands. Servers you started yourself in another terminal are not shown yet.
+
+Tripwire tags Pi-spawned bash child processes with small `PI_TRIPWIRE_*` environment markers for attribution, then reads only those markers from listener processes.
 
 Tripwire only observes. It does not stop processes, restart them, or open browsers.
