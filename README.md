@@ -27,8 +27,8 @@ pi install git:github.com/wdphoto/pi-tripwire
 Pinned versions work for either source:
 
 ```sh
-pi install npm:pi-tripwire@0.0.5
-pi install git:github.com/wdphoto/pi-tripwire@v0.0.5
+pi install npm:pi-tripwire@0.0.6
+pi install git:github.com/wdphoto/pi-tripwire@v0.0.6
 ```
 
 Then restart Pi or run:
