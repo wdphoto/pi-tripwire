@@ -14,7 +14,7 @@ hugo:1313 node:5173 python:8000
 
 ## Product principles
 
-- **Signal over surveillance.** MVP shows only server/listener processes spawned by Pi agent tool calls. Human-started current-project listeners (for example `hugo server` started in another terminal) are a second-pass feature.
+- **Signal over surveillance.** Agent-spawned listeners (this Pi session) render in `accent`. Human-started listeners are shown too, dimmed: `project` origin (process cwd under `ctx.cwd`, any command) and `external` origin (other cwd, command in `DEV_COMMANDS`). Non-dev system listeners stay hidden.
 - **Default footer stays sacred.** Prefer `ctx.ui.setStatus("tripwire", ...)`; do not replace Pi’s whole footer with `setFooter()` unless we have a strong reason.
 - **Invisible when quiet.** If nothing relevant is listening, clear the status entirely.
 - **Read-only observer.** Tripwire never kills processes, opens network connections, or changes project files as part of scanning.
@@ -43,15 +43,16 @@ Preferred MVP approach:
 2. Track Pi-launched shell commands from the `tool_call` / `tool_result` lifecycle.
 3. Prefer a hidden env marker for robust attribution when possible. `PI_TRIPWIRE_SESSION` should be derived from Pi's session file so `/reload` does not orphan already-running servers:
    - `PI_TRIPWIRE_SESSION`
-   - `PI_TRIPWIRE_CWD`
    - `PI_TRIPWIRE_ACTOR=agent`
+   - Do not include cwd in the MVP marker; it is not needed for session attribution and should stay out of visible command fallbacks.
+   - If another extension owns `bash`, fail closed by default. Visible command-prelude injection is an opt-in compatibility mode only.
 4. Keep the previous snapshot-PID approach only as a weak fallback for environments where env reads fail; avoid broadening it in ways that misclassify unrelated processes.
-5. Scan listeners periodically and after tool calls using a small cross-platform adapter:
+5. Scan listeners periodically and after bash tool calls/results using a small cross-platform adapter:
    - Use `lsof` where available.
    - Add `ss`/Linux fallback instead of making Tripwire feel macOS-specific.
-6. MVP includes only this Pi session / agent-spawned listeners. Human/user-spawned current-project listeners and other-project listeners are post-MVP.
-7. Second pass should detect listeners whose cwd is under current `ctx.cwd` and color them differently from agent-spawned, while keeping labels as `<process>:<port>`.
-8. Render compact labels as `<process>:<port>` in the footer, with no visible `Tripwire` prefix. Use color for origin later instead of adding `@project` text.
+6. `agent` origin requires marker/session attribution (env marker, or PID snapshot when explicitly enabled). This is the only tier that proves Pi spawned it.
+7. `project` origin detects listeners whose process cwd is under current `ctx.cwd` (via `cwd.ts`: `/proc/<pid>/cwd` on Linux, batched `lsof -a -p <pids> -d cwd -Fn` elsewhere). `external` origin catches remaining localhost listeners whose label is in `DEV_COMMANDS`. Both render in `dim`; agent renders in `accent`. Agent attribution always wins over project/external for the same `label:port`.
+8. Render compact labels as `<process>:<port>` in the footer, with no visible `Tripwire` prefix. Origin is conveyed by color only, never `@project`-style text.
 
 ## Code shape we want
 
@@ -62,7 +63,8 @@ extensions/
   tripwire/
     index.ts        # Pi package entrypoint and lifecycle wiring
     lsof.ts         # lsof execution + parser
-    classify.ts     # Pi-spawned relevance rules and label heuristics
+    cwd.ts          # per-process cwd lookup (lsof -Fn / /proc) + parser
+    classify.ts     # origin (agent/project/external) rules and label heuristics
     format.ts       # footer/status formatting and future origin colors
     config.ts       # defaults and config parsing
     types.ts        # shared types

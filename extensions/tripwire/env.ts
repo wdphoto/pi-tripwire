@@ -18,7 +18,6 @@ export function parseTripwireEnvText(text: string): TripwireMarker {
     const value = pair.slice(index + 1);
     if (key === TRIPWIRE_ENV.session && value) marker.session = value;
     if (key === TRIPWIRE_ENV.actor && value === "agent") marker.actor = "agent";
-    if (key === TRIPWIRE_ENV.cwd && value) marker.cwd = value;
   }
 
   return marker;

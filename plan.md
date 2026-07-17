@@ -64,12 +64,11 @@ We want to know: “did this listener come from a Pi agent shell command?”
 
 ### Preferred mechanism: hidden env marker
 
-On `tool_call` for the built-in `bash` tool, prepend small env exports to the command:
+For the built-in `bash` tool, use Pi's native `spawnHook` to add small markers to the child environment without changing visible command text:
 
 ```sh
 export PI_TRIPWIRE_SESSION='...'
 export PI_TRIPWIRE_ACTOR='agent'
-export PI_TRIPWIRE_CWD='...'
 ```
 
 Any child server process should inherit this metadata. During scans, Tripwire checks only these keys and never dumps full env.
@@ -79,6 +78,8 @@ Pros:
 - More accurate than PID snapshots.
 - Survives command wrappers like `npm`, `npx`, `hugo`, `python`, etc.
 - Lets us avoid external/user detection for MVP.
+
+If another extension owns `bash`, Tripwire fails closed by default. Command-prelude injection remains available only as an explicit compatibility option because it changes visible command text and can place attribution data in session history.
 
 Risks:
 
@@ -184,7 +185,7 @@ extensions/
 
 - [x] Generate stable per-Pi-session id on `session_start` from Pi session file, so `/reload` does not orphan existing servers.
 - [x] Prefer Pi's native `createBashTool(..., { spawnHook })` bash override for hidden env marker injection when the active bash tool is still built-in.
-- [x] Keep command-prelude injection only as a compatibility fallback when another extension already overrides bash, so Tripwire does not clobber that extension.
+- [x] Fail closed by default when another extension owns bash; keep command-prelude injection as an opt-in compatibility fallback only.
 - [x] Read marker metadata for listener PIDs.
 - [x] Filter to current session + actor `agent`.
 - [x] Add fallback notes/tests for unavailable env reads.
@@ -290,7 +291,7 @@ Build it package-shaped from the start, but keep one source repo.
 
 1. Is the native bash override acceptable as the default injection path?
    - Current decision: use `createBashTool(..., { spawnHook })` when bash is built-in, so markers are hidden in the child process env instead of being prepended to visible command text.
-   - If another extension already owns `bash`, Tripwire does not override it; it falls back to command-prelude injection for compatibility.
+   - If another extension already owns `bash`, Tripwire does not override it and fails closed by default. Command-prelude injection is opt-in compatibility behavior.
    - Follow-up risk: confirm this preserves enough of Pi's built-in bash settings/rendering for real users, especially custom shell path or command prefix settings.
 
 ## Next review notes
@@ -317,7 +318,7 @@ Captured after running `pi update` to Pi `0.79.6`:
 2. Update local dev dependency/lock to match the globally updated Pi version when useful. Global Pi is `0.79.6`; current local lock was observed at `@earendil-works/pi-coding-agent@0.79.4` during this review.
 3. Re-evaluate env injection approach:
    - Current MVP now overrides built-in bash with `createBashTool(..., { spawnHook })` and injects env markers natively.
-   - If bash is already overridden by another extension, Tripwire avoids clobbering it and uses the older command-prelude fallback.
+   - If bash is already overridden by another extension, Tripwire avoids clobbering it and fails closed unless command-prelude compatibility is explicitly enabled.
    - Manual QA should confirm built-in bash UX remains acceptable and user shell settings are not unexpectedly lost.
 4. Finish test checklist:
    - Formatter truncation tests if/when width limits are added.

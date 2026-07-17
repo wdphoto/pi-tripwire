@@ -1,5 +1,5 @@
 import { DEV_COMMANDS } from "./config.ts";
-import type { RawListener, TrackedListener, TripwireMarker } from "./types.ts";
+import type { ListenerOrigin, RawListener, TrackedListener, TripwireMarker } from "./types.ts";
 
 export function labelForCommand(command: string): string {
   const base = command.split(/[\\/]/).pop() ?? command;
@@ -20,37 +20,68 @@ export function isLocalHost(host: string | undefined): boolean {
   return normalized.startsWith("127.");
 }
 
+export function isUnderPath(path: string, root: string): boolean {
+  if (!root || root === "/") return root === "/";
+  const normalizedRoot = root.endsWith("/") ? root.slice(0, -1) : root;
+  return path === normalizedRoot || path.startsWith(`${normalizedRoot}/`);
+}
+
+const ORIGIN_PRIORITY: Record<ListenerOrigin, number> = {
+  agent: 0,
+  project: 1,
+  external: 2,
+};
+
 export function classifyListeners(options: {
   listeners: RawListener[];
   markers: Map<number, TripwireMarker>;
   agentPids: Set<number>;
   sessionId: string;
+  projectRoot?: string;
+  cwds?: Map<number, string>;
+  includeProjectListeners?: boolean;
+  includeExternalListeners?: boolean;
 }): TrackedListener[] {
-  const tracked: TrackedListener[] = [];
-  const seen = new Set<string>();
+  const byKey = new Map<string, TrackedListener>();
 
   for (const listener of options.listeners) {
     if (!isLocalHost(listener.host)) continue;
 
     const marker = options.markers.get(listener.pid);
-    const fromEnv = marker?.session === options.sessionId && marker.actor === "agent";
     const label = labelForCommand(listener.command);
+    const fromEnv = marker?.session === options.sessionId && marker.actor === "agent";
     const fromSnapshot = options.agentPids.has(listener.pid) && DEV_COMMANDS.has(label);
+    const cwd = options.cwds?.get(listener.pid);
+    const fromProject =
+      Boolean(options.includeProjectListeners) && Boolean(options.projectRoot) && cwd !== undefined &&
+      isUnderPath(cwd, options.projectRoot as string);
+    const fromExternal = Boolean(options.includeExternalListeners) && DEV_COMMANDS.has(label);
 
-    if (!fromEnv && !fromSnapshot) continue;
+    let candidate: TrackedListener | undefined;
+    if (fromEnv || fromSnapshot) {
+      candidate = {
+        ...listener,
+        label,
+        url: listenerUrl(listener.port),
+        origin: "agent",
+        ...(marker ? { marker } : {}),
+        source: fromEnv ? "env" : "pid-snapshot",
+      };
+    } else if (fromProject) {
+      candidate = { ...listener, label, url: listenerUrl(listener.port), origin: "project", source: "cwd" };
+    } else if (fromExternal) {
+      candidate = { ...listener, label, url: listenerUrl(listener.port), origin: "external", source: "dev-command" };
+    }
+    if (!candidate) continue;
 
     const key = `${label}:${listener.port}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    tracked.push({
-      ...listener,
-      label,
-      url: listenerUrl(listener.port),
-      ...(marker ? { marker } : {}),
-      source: fromEnv ? "env" : "pid-snapshot",
-    });
+    const existing = byKey.get(key);
+    if (!existing || ORIGIN_PRIORITY[candidate.origin] < ORIGIN_PRIORITY[existing.origin]) {
+      byKey.set(key, candidate);
+    }
   }
 
-  return tracked.sort((a, b) => a.port - b.port || a.label.localeCompare(b.label));
+  return [...byKey.values()].sort(
+    (a, b) => ORIGIN_PRIORITY[a.origin] - ORIGIN_PRIORITY[b.origin] || a.port - b.port || a.label.localeCompare(b.label),
+  );
 }

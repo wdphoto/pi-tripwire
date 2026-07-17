@@ -31,6 +31,7 @@ test("formatFooterStatus renders labels without prefix", () => {
       port: 1313,
       protocol: "tcp",
       url: "http://localhost:1313",
+      origin: "agent" as const,
       source: "env",
     },
   ];
@@ -38,6 +39,26 @@ test("formatFooterStatus renders labels without prefix", () => {
   assert.equal(
     formatFooterStatus(entries, theme, { maxFooterItems: 5, maxLabelWidth: 24 }),
     "\x1b]8;;http://localhost:1313\x1b\\<accent>hugo:1313</accent>\x1b]8;;\x1b\\",
+  );
+});
+
+test("formatFooterStatus dims non-agent listeners", () => {
+  const entries: TrackedListener[] = [
+    {
+      pid: 1,
+      command: "hugo",
+      label: "hugo",
+      port: 1313,
+      protocol: "tcp",
+      url: "http://localhost:1313",
+      origin: "project",
+      source: "cwd",
+    },
+  ];
+
+  assert.equal(
+    formatFooterStatus(entries, theme, { maxFooterItems: 5, maxLabelWidth: 24 }),
+    "\x1b]8;;http://localhost:1313\x1b\\<dim>hugo:1313</dim>\x1b]8;;\x1b\\",
   );
 });
 
@@ -49,9 +70,10 @@ test("formatFooterStatus adds overflow", () => {
     port,
     protocol: "tcp" as const,
     url: `http://localhost:${port}`,
+    origin: "agent" as const,
     source: "env" as const,
   }));
 
   const formatted = formatFooterStatus(entries, theme, { maxFooterItems: 2, maxLabelWidth: 24 });
-  assert.match(formatted ?? "", /<dim>\+1<\/dim>$/);
+  assert.match(formatted ?? "", /<muted>\+1<\/muted>$/);
 });

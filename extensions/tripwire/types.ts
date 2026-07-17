@@ -11,14 +11,18 @@ export type RawListener = {
 export type TripwireMarker = {
   session?: string;
   actor?: TripwireActor;
-  cwd?: string;
 };
+
+export type ListenerOrigin = "agent" | "project" | "external";
+
+export type AttributionSource = "env" | "pid-snapshot" | "cwd" | "dev-command";
 
 export type TrackedListener = RawListener & {
   label: string;
   url: string;
+  origin: ListenerOrigin;
   marker?: TripwireMarker;
-  source: "env" | "pid-snapshot";
+  source: AttributionSource;
 };
 
 export type TripwireConfig = {
@@ -31,4 +35,6 @@ export type TripwireConfig = {
   statusKey: string;
   enablePidSnapshotFallback: boolean;
   enableCommandPreludeFallback: boolean;
+  includeProjectListeners: boolean;
+  includeExternalListeners: boolean;
 };

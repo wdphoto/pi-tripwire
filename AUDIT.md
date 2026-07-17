@@ -1,5 +1,23 @@
 # Tripwire Code Review & Audit
 
+## 2026-07-09 Pi-idiomatic hardening
+
+The current runtime was reviewed against Pi 0.79.x extension and TUI behavior. The existing package shape and lifecycle wiring remain sound; this pass tightened execution behavior without expanding product scope.
+
+Changes:
+
+- Hidden `spawnHook` attribution remains the default. If another extension owns `bash`, Tripwire now fails closed instead of prepending markers to visible command text by default.
+- Removed the unused `PI_TRIPWIRE_CWD` marker. MVP attribution needs only the stable session id and `agent` actor marker.
+- Runtime refreshes after every bash result, not only when the disabled-by-default PID snapshot fallback is active.
+- Runtime consumes scanner health information. A successful empty scan clears the footer; a failed scan preserves the last known status.
+- Marker reads are limited to local/wildcard listener candidates before per-process environment inspection.
+- Added runtime coverage for bash ownership, failed and successful-empty scans, local candidate filtering, and late scan completion after shutdown.
+
+Verification:
+
+- `npm run check` passes: 30 tests, TypeScript, and `npm audit --omit=dev` with zero vulnerabilities.
+- Package contents remain checked separately with `npm pack --dry-run`.
+
 ## 2026-07-01 Current Review
 
 Scope: current `extensions/tripwire/` implementation, package metadata, README/plan, and Pi extension/TUI docs from:

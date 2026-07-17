@@ -30,12 +30,12 @@ export function formatFooterStatus(
   const parts = visible.map((entry) => {
     const label = truncateLabel(sanitizeFooterLabel(entry.label), config.maxLabelWidth);
     const text = `${label}:${entry.port}`;
-    const colored = theme.fg("accent", text);
+    const colored = theme.fg(entry.origin === "agent" ? "accent" : "dim", text);
     return osc8(entry.url, colored);
   });
 
   const overflow = entries.length - visible.length;
-  if (overflow > 0) parts.push(theme.fg("dim", `+${overflow}`));
+  if (overflow > 0) parts.push(theme.fg("muted", `+${overflow}`));
 
   return parts.join(" ");
 }

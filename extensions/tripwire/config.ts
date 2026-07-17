@@ -9,13 +9,14 @@ export const DEFAULT_CONFIG: TripwireConfig = {
   maxLabelWidth: 24,
   statusKey: "tripwire",
   enablePidSnapshotFallback: false,
-  enableCommandPreludeFallback: true,
+  enableCommandPreludeFallback: false,
+  includeProjectListeners: true,
+  includeExternalListeners: true,
 };
 
 export const TRIPWIRE_ENV = {
   session: "PI_TRIPWIRE_SESSION",
   actor: "PI_TRIPWIRE_ACTOR",
-  cwd: "PI_TRIPWIRE_CWD",
 } as const;
 
 export const DEV_COMMANDS = new Set([

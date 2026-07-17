@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "managedBy": "the-construct",
+  "items": {
+    "pi-web-access": {
+      "kind": "package",
+      "source": "https://github.com/nicobailon/pi-web-access",
+      "enabled": true,
+      "loadedAt": "2026-07-01T18:54:13.366Z",
+      "updatedAt": "2026-07-01T18:54:13.430Z"
+    },
+    "pi-tripwire": {
+      "kind": "package",
+      "source": "..",
+      "requestedSource": "/Users/illwill/Code/pi-tripwire",
+      "enabled": true,
+      "loadedAt": "2026-07-01T23:08:16.782Z",
+      "updatedAt": "2026-07-01T23:08:16.782Z"
+    }
+  },
+  "loadedAt": "2026-06-21T19:21:50.359Z",
+  "targetCwd": "/Users/illwill/Code/pi-tripwire"
+}

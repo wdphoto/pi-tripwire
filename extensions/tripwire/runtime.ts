@@ -1,17 +1,20 @@
+import { realpathSync } from "node:fs";
 import type { ExtensionAPI, ExtensionContext, SourceInfo, ToolCallEvent, ToolResultEvent } from "@earendil-works/pi-coding-agent";
 import { createBashTool, isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { classifyListeners } from "./classify.ts";
+import { classifyListeners, isLocalHost } from "./classify.ts";
 import { DEFAULT_CONFIG, TRIPWIRE_ENV } from "./config.ts";
+import { readProcessCwds } from "./cwd.ts";
 import { readTripwireMarker } from "./env.ts";
 import { formatFooterStatus } from "./format.ts";
 import { diffPids, pruneDeadPids, snapshotPids } from "./process.ts";
-import { DefaultListenerScanner, type ListenerScanner } from "./scanner.ts";
+import { DefaultListenerScanner, type ListenerScanner, type ScanResult } from "./scanner.ts";
 import { deriveTripwireSessionId } from "./session.ts";
 import { buildExportPrelude } from "./shell.ts";
 import type { TripwireConfig, TripwireMarker } from "./types.ts";
 
 type BashInjectionMode = "none" | "spawn-hook" | "command-prelude";
 type MarkerReader = (pid: number) => Promise<TripwireMarker>;
+type CwdReader = (pids: number[]) => Promise<Map<number, string>>;
 
 function sourceKey(sourceInfo: SourceInfo | undefined): string {
   if (!sourceInfo) return "";
@@ -30,6 +33,7 @@ export class TripwireRuntime {
   private refreshInFlight = false;
   private refreshQueued = false;
   private sessionGeneration = 0;
+  private projectRoot = "";
   private readonly defaultScanner: ListenerScanner;
 
   private readonly pendingSnapshots = new Map<string, Set<number>>();
@@ -41,6 +45,7 @@ export class TripwireRuntime {
       config?: TripwireConfig;
       scanner?: ListenerScanner;
       readMarker?: MarkerReader;
+      readCwds?: CwdReader;
     },
   ) {
     this.defaultScanner = options.scanner ?? new DefaultListenerScanner(this.config);
@@ -59,6 +64,7 @@ export class TripwireRuntime {
     this.sessionAbortController?.abort();
     this.sessionAbortController = new AbortController();
     this.sessionId = this.deriveSessionId(ctx);
+    this.projectRoot = this.resolveProjectRoot(ctx);
     this.pendingSnapshots.clear();
     this.agentPids.clear();
     this.refreshQueued = false;
@@ -82,6 +88,7 @@ export class TripwireRuntime {
     this.refreshQueued = false;
     this.sessionAbortController?.abort();
     this.sessionAbortController = undefined;
+    this.projectRoot = "";
     this.pendingSnapshots.clear();
     this.agentPids.clear();
 
@@ -99,7 +106,7 @@ export class TripwireRuntime {
     }
 
     if (this.shouldUseCommandPrelude() && isToolCallEventType("bash", event)) {
-      this.applyCommandPrelude(event.input.command, ctx, (command) => {
+      this.applyCommandPrelude(event.input.command, (command) => {
         event.input.command = command;
       });
     }
@@ -108,14 +115,18 @@ export class TripwireRuntime {
   }
 
   async onToolResult(event: ToolResultEvent, ctx: ExtensionContext): Promise<void> {
-    if (!this.enabled || !this.config.enablePidSnapshotFallback || event.toolName !== "bash") return;
+    if (!this.enabled || event.toolName !== "bash") return;
 
-    const before = this.pendingSnapshots.get(event.toolCallId);
-    this.pendingSnapshots.delete(event.toolCallId);
-    if (!before) return;
+    if (this.config.enablePidSnapshotFallback) {
+      const before = this.pendingSnapshots.get(event.toolCallId);
+      this.pendingSnapshots.delete(event.toolCallId);
 
-    const after = await snapshotPids(this.config.pidSnapshotTimeoutMs);
-    for (const pid of diffPids(before, after)) this.agentPids.add(pid);
+      if (before) {
+        const after = await snapshotPids(this.config.pidSnapshotTimeoutMs);
+        for (const pid of diffPids(before, after)) this.agentPids.add(pid);
+      }
+    }
+
     this.scheduleRefresh(ctx, 100);
   }
 
@@ -125,6 +136,18 @@ export class TripwireRuntime {
 
   private get readMarker(): MarkerReader {
     return this.options.readMarker ?? readTripwireMarker;
+  }
+
+  private get readCwds(): CwdReader {
+    return this.options.readCwds ?? ((pids) => readProcessCwds(pids, this.config.scanTimeoutMs));
+  }
+
+  private resolveProjectRoot(ctx: ExtensionContext): string {
+    try {
+      return realpathSync(ctx.cwd);
+    } catch {
+      return ctx.cwd;
+    }
   }
 
   private async refresh(ctx: ExtensionContext): Promise<void> {
@@ -138,7 +161,17 @@ export class TripwireRuntime {
     const generation = this.sessionGeneration;
 
     try {
-      const listeners = await this.scanner.scan(this.sessionAbortController?.signal);
+      let scan: ScanResult;
+      try {
+        scan = this.scanner.scanResult
+          ? await this.scanner.scanResult(this.sessionAbortController?.signal)
+          : { listeners: await this.scanner.scan(this.sessionAbortController?.signal), ok: true };
+      } catch {
+        return;
+      }
+      if (!scan.ok) return;
+
+      const listeners = scan.listeners.filter((listener) => isLocalHost(listener.host));
       if (this.config.enablePidSnapshotFallback && this.agentPids.size > 0) pruneDeadPids(this.agentPids);
 
       const pids = [...new Set(listeners.map((listener) => listener.pid))];
@@ -148,7 +181,27 @@ export class TripwireRuntime {
       const markers = new Map(markerEntries);
 
       if (this.disposed || generation !== this.sessionGeneration) return;
-      const tracked = classifyListeners({ listeners, markers, agentPids: this.agentPids, sessionId: this.sessionId });
+
+      let cwds: Map<number, string> | undefined;
+      if (this.config.includeProjectListeners && this.projectRoot) {
+        const unattributedPids = pids.filter((pid) => {
+          const marker = markers.get(pid);
+          return !(marker?.session === this.sessionId && marker.actor === "agent");
+        });
+        if (unattributedPids.length > 0) cwds = await this.readCwds(unattributedPids);
+        if (this.disposed || generation !== this.sessionGeneration) return;
+      }
+
+      const tracked = classifyListeners({
+        listeners,
+        markers,
+        agentPids: this.agentPids,
+        sessionId: this.sessionId,
+        projectRoot: this.projectRoot,
+        ...(cwds ? { cwds } : {}),
+        includeProjectListeners: this.config.includeProjectListeners,
+        includeExternalListeners: this.config.includeExternalListeners,
+      });
       ctx.ui.setStatus(this.config.statusKey, formatFooterStatus(tracked, ctx.ui.theme, this.config));
     } finally {
       this.refreshInFlight = false;
@@ -173,7 +226,6 @@ export class TripwireRuntime {
           ...env,
           [TRIPWIRE_ENV.session]: this.sessionId,
           [TRIPWIRE_ENV.actor]: "agent",
-          [TRIPWIRE_ENV.cwd]: cwd,
         },
       }),
     });
@@ -209,13 +261,12 @@ export class TripwireRuntime {
     return this.options.pi.getAllTools().find((tool) => tool.name === "bash")?.sourceInfo;
   }
 
-  private applyCommandPrelude(command: string, ctx: ExtensionContext, setCommand: (command: string) => void): void {
+  private applyCommandPrelude(command: string, setCommand: (command: string) => void): void {
     if (this.hasTripwirePrelude(command)) return;
 
     const prelude = buildExportPrelude({
       [TRIPWIRE_ENV.session]: this.sessionId,
       [TRIPWIRE_ENV.actor]: "agent",
-      [TRIPWIRE_ENV.cwd]: ctx.cwd,
     });
     setCommand(`${prelude}${command}`);
   }
