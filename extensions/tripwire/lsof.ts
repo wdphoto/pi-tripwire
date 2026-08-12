@@ -5,6 +5,22 @@ import type { RawListener, TripwireConfig } from "./types.ts";
 
 const execFileAsync = promisify(execFile);
 
+export function scanResultFromLsofError(error: unknown): ScanResult {
+  const result = error as { code?: unknown; stdout?: unknown; stderr?: unknown };
+
+  // lsof uses exit code 1, with no output, when the selection matched no files.
+  // That is a successful empty inventory rather than a scanner failure.
+  if (result.code === 1 && result.stdout === "" && result.stderr === "") {
+    return { listeners: [], ok: true };
+  }
+
+  return {
+    listeners: [],
+    ok: false,
+    ...(result.code === "ENOENT" ? { unavailable: true } : {}),
+  };
+}
+
 export function parseLsofListeners(output: string): RawListener[] {
   const listeners: RawListener[] = [];
 
@@ -55,8 +71,7 @@ export class LsofScanner {
       });
       return { listeners: parseLsofListeners(stdout), ok: true };
     } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code;
-      return { listeners: [], ok: false, ...(code === "ENOENT" ? { unavailable: true } : {}) };
+      return scanResultFromLsofError(error);
     }
   }
 }

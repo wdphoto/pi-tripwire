@@ -49,3 +49,23 @@ test("DefaultListenerScanner returns ss results when lsof is unavailable", async
 
   assert.deepEqual(await defaultScanner.scan(), [ssListener]);
 });
+
+test("DefaultListenerScanner treats adapter exceptions as failed scans", async () => {
+  const ssListener = { pid: 2, command: "python3", host: "127.0.0.1", port: 8000, protocol: "tcp" as const };
+  const defaultScanner = new DefaultListenerScanner(
+    { scanTimeoutMs: 100 },
+    {
+      lsof: {
+        async scan() {
+          throw new Error("lsof failed");
+        },
+        async scanResult() {
+          throw new Error("lsof failed");
+        },
+      },
+      ss: scanner({ listeners: [ssListener], ok: true }),
+    },
+  );
+
+  assert.deepEqual(await defaultScanner.scan(), [ssListener]);
+});

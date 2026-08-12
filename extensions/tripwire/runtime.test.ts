@@ -8,7 +8,7 @@ import type {
   ToolDefinition,
   ToolResultEvent,
 } from "@earendil-works/pi-coding-agent";
-import { DEFAULT_CONFIG, TRIPWIRE_ENV } from "./config.ts";
+import { DEFAULT_CONFIG } from "./config.ts";
 import { TripwireRuntime } from "./runtime.ts";
 import type { ListenerScanner, ScanResult } from "./scanner.ts";
 import { deriveTripwireSessionId } from "./session.ts";
@@ -108,27 +108,6 @@ function bashEvent(command: string): BashToolCallEvent {
   } as unknown as BashToolCallEvent;
 }
 
-test("TripwireRuntime falls back to command prelude if its bash wrapper is overwritten", async () => {
-  const fake = makePi();
-  const runtime = new TripwireRuntime({
-    pi: fake.pi,
-    scanner,
-    readMarker: async () => ({}),
-    config: { ...DEFAULT_CONFIG, enableCommandPreludeFallback: true },
-  });
-  const ctx = makeContext();
-
-  runtime.start(ctx);
-  fake.stealBash();
-
-  const event = bashEvent("npm run dev");
-  await runtime.onToolCall(event, ctx);
-  runtime.stop(ctx);
-
-  assert.match(event.input.command, new RegExp(`^export ${TRIPWIRE_ENV.session}=`));
-  assert.match(event.input.command, /npm run dev$/);
-});
-
 test("TripwireRuntime fails closed when another extension owns bash", async () => {
   const fake = makePi(otherSource);
   const runtime = new TripwireRuntime({ pi: fake.pi, scanner, readMarker: async () => ({}) });
@@ -156,6 +135,61 @@ test("TripwireRuntime leaves commands alone when its bash wrapper remains active
   runtime.stop(ctx);
 
   assert.equal(event.input.command, "npm run dev");
+});
+
+test("TripwireRuntime ignores ancestry after another extension replaces bash", async () => {
+  const statuses: Array<string | undefined> = [];
+  let ancestryReads = 0;
+  const ctx = makeContext(statuses);
+  const fake = makePi();
+  const runtime = new TripwireRuntime({
+    pi: fake.pi,
+    scanner: {
+      async scan() {
+        return [{ pid: 7, command: "custom-server", host: "127.0.0.1", port: 9000, protocol: "tcp" as const }];
+      },
+    },
+    readMarker: async () => ({}),
+    readAncestry: async () => {
+      ancestryReads++;
+      return new Set([7]);
+    },
+    config: { ...DEFAULT_CONFIG, refreshMs: 60_000, includeProjectListeners: false, includeExternalListeners: false },
+  });
+
+  runtime.start(ctx);
+  fake.stealBash();
+  await waitFor(() => statuses.length === 1);
+
+  assert.equal(ancestryReads, 0);
+  assert.equal(statuses[0], undefined);
+  runtime.stop(ctx);
+});
+
+test("TripwireRuntime fails closed on metadata reader errors", async () => {
+  const statuses: Array<string | undefined> = [];
+  const ctx = makeContext(statuses);
+  const runtime = new TripwireRuntime({
+    pi: makePi().pi,
+    scanner: {
+      async scan() {
+        return [{ pid: 7, command: "custom-server", host: "127.0.0.1", port: 9000, protocol: "tcp" as const }];
+      },
+    },
+    readMarker: async () => {
+      throw new Error("environment unavailable");
+    },
+    readAncestry: async () => {
+      throw new Error("process list unavailable");
+    },
+    config: { ...DEFAULT_CONFIG, refreshMs: 60_000, includeProjectListeners: false, includeExternalListeners: false },
+  });
+
+  runtime.start(ctx);
+  await waitFor(() => statuses.length === 1);
+
+  assert.equal(statuses[0], undefined);
+  runtime.stop(ctx);
 });
 
 test("TripwireRuntime preserves status when a follow-up scan fails", async () => {
@@ -253,6 +287,48 @@ test("TripwireRuntime reads markers only for local listener candidates", async (
   await waitFor(() => statuses.length === 1);
 
   assert.deepEqual(markerPids, [1]);
+  runtime.stop(ctx);
+});
+
+test("TripwireRuntime propagates session cancellation to marker reads", async () => {
+  const statuses: Array<string | undefined> = [];
+  let markerSignal: AbortSignal | undefined;
+  const runtime = new TripwireRuntime({
+    pi: makePi().pi,
+    scanner: { async scan() { return [{ pid: 7, command: "node", host: "127.0.0.1", port: 9000, protocol: "tcp" as const }]; } },
+    readMarker: async (_pid, signal) => {
+      markerSignal = signal;
+      return {};
+    },
+    readAncestry: async () => new Set(),
+    config: { ...DEFAULT_CONFIG, refreshMs: 60_000, includeProjectListeners: false, includeExternalListeners: false },
+  });
+
+  const ctx = makeContext(statuses);
+  runtime.start(ctx);
+  await waitFor(() => markerSignal !== undefined);
+  assert.equal(markerSignal?.aborted, false);
+
+  runtime.stop(ctx);
+  assert.equal(markerSignal?.aborted, true);
+});
+
+test("TripwireRuntime promotes a listener proven by process ancestry", async () => {
+  const candidates = [{ pid: 7, command: "custom-server", host: "127.0.0.1", port: 9000, protocol: "tcp" as const }];
+  const statuses: Array<string | undefined> = [];
+  const ctx = makeContext(statuses);
+  const runtime = new TripwireRuntime({
+    pi: makePi().pi,
+    scanner: { async scan() { return candidates; } },
+    readMarker: async () => ({}),
+    readAncestry: async () => new Set([7]),
+    config: { ...DEFAULT_CONFIG, refreshMs: 60_000, includeProjectListeners: false },
+  });
+
+  runtime.start(ctx);
+  await waitFor(() => statuses.length === 1);
+
+  assert.match(statuses[0] ?? "", /custom-server:9000/);
   runtime.stop(ctx);
 });
 

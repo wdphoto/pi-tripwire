@@ -48,10 +48,12 @@ export class DefaultListenerScanner implements ListenerScanner {
   }
 
   async scanResult(signal?: AbortSignal): Promise<ScanResult> {
-    const lsof = await readScanner(this.lsof, signal);
-    if (!this.ss) return lsof;
+    if (!this.ss) return readScanner(this.lsof, signal);
 
-    const ss = await readScanner(this.ss, signal);
+    const [lsof, ss] = await Promise.all([
+      readScanner(this.lsof, signal),
+      readScanner(this.ss, signal),
+    ]);
     const ok = lsof.ok || ss.ok;
     const unavailable = Boolean(lsof.unavailable && ss.unavailable);
     return {
@@ -63,10 +65,10 @@ export class DefaultListenerScanner implements ListenerScanner {
 }
 
 async function readScanner(scanner: ListenerScanner, signal?: AbortSignal): Promise<ScanResult> {
-  if (scanner.scanResult) return scanner.scanResult(signal);
-
   try {
-    return scanResultFromListeners(await scanner.scan(signal));
+    return scanner.scanResult
+      ? await scanner.scanResult(signal)
+      : scanResultFromListeners(await scanner.scan(signal));
   } catch {
     return { listeners: [], ok: false };
   }

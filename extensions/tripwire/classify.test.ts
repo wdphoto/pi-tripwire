@@ -14,9 +14,11 @@ test("isLocalHost accepts loopback and wildcard binds", () => {
   assert.equal(isLocalHost("127.1.2.3"), true);
   assert.equal(isLocalHost("::1"), true);
   assert.equal(isLocalHost("[::1]"), true);
+  assert.equal(isLocalHost("::ffff:127.0.0.1"), true);
   assert.equal(isLocalHost("0.0.0.0"), true);
   assert.equal(isLocalHost("*"), true);
   assert.equal(isLocalHost("192.168.1.20"), false);
+  assert.equal(isLocalHost("127.not-an-ip"), false);
 });
 
 test("isUnderPath matches the root and its descendants", () => {
@@ -45,7 +47,7 @@ test("classifyListeners keeps only current-session agent listeners", () => {
   const tracked = classifyListeners({
     listeners,
     markers,
-    agentPids: new Set([3]),
+    ancestryPids: new Set([3]),
     sessionId: "current",
   });
 
@@ -53,7 +55,7 @@ test("classifyListeners keeps only current-session agent listeners", () => {
     tracked.map((entry) => ({ label: entry.label, port: entry.port, origin: entry.origin, source: entry.source })),
     [
       { label: "hugo", port: 1313, origin: "agent", source: "env" },
-      { label: "python", port: 8000, origin: "agent", source: "pid-snapshot" },
+      { label: "python", port: 8000, origin: "agent", source: "ancestry" },
     ],
   );
 });
@@ -68,7 +70,6 @@ test("classifyListeners marks project listeners by process cwd", () => {
   const tracked = classifyListeners({
     listeners,
     markers: new Map(),
-    agentPids: new Set(),
     sessionId: "current",
     projectRoot: "/repo",
     cwds: new Map([
@@ -98,7 +99,6 @@ test("classifyListeners marks external dev servers by command name", () => {
   const tracked = classifyListeners({
     listeners,
     markers: new Map(),
-    agentPids: new Set(),
     sessionId: "current",
     includeProjectListeners: false,
     includeExternalListeners: true,
@@ -120,7 +120,6 @@ test("agent attribution wins over project/external and sorts first", () => {
   const tracked = classifyListeners({
     listeners,
     markers: new Map([[2, { session: "current", actor: "agent" }]]),
-    agentPids: new Set(),
     sessionId: "current",
     projectRoot: "/repo",
     cwds: new Map([

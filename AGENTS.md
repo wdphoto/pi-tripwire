@@ -4,7 +4,7 @@
 
 ## Project
 
-Tripwire is a Pi extension that quietly shows local server processes spawned by Pi agent work. The footer should answer: “what localhost ports did Pi start for me?”
+Tripwire is a Pi extension that quietly shows relevant local server processes. The footer should answer: “what localhost ports are relevant, and what did Pi start for me?”
 
 Example footer status:
 
@@ -18,7 +18,7 @@ hugo:1313 node:5173 python:8000
 - **Default footer stays sacred.** Prefer `ctx.ui.setStatus("tripwire", ...)`; do not replace Pi’s whole footer with `setFooter()` unless we have a strong reason.
 - **Invisible when quiet.** If nothing relevant is listening, clear the status entirely.
 - **Read-only observer.** Tripwire never kills processes, opens network connections, or changes project files as part of scanning.
-- **Line first, command later.** Do not add commands/UI unless they earn their keep. A debug command can come later, but MVP is the footer status.
+- **Line first, command later.** Do not add commands/UI unless they earn their keep; the footer is the product surface.
 - **Maintainable > spooky.** Small pure parser/classifier modules with tests. No giant shell-regex mudball.
 
 ## Pi extension rules to remember
@@ -37,68 +37,60 @@ hugo:1313 node:5173 python:8000
 
 ## Detection model
 
-Preferred MVP approach:
+Current approach:
 
-1. On `session_start`, derive a stable session id and start with empty snapshot-owned PID state.
-2. Track Pi-launched shell commands from the `tool_call` / `tool_result` lifecycle.
-3. Prefer a hidden env marker for robust attribution when possible. `PI_TRIPWIRE_SESSION` should be derived from Pi's session file so `/reload` does not orphan already-running servers:
+1. On `session_start`, derive a stable session id and reset session-owned state.
+2. Track Pi-launched shell activity from the `tool_call` / `tool_result` lifecycle.
+3. Use a hidden env marker for attribution. `PI_TRIPWIRE_SESSION` should be derived from Pi's session file so `/reload` does not orphan already-running servers:
    - `PI_TRIPWIRE_SESSION`
    - `PI_TRIPWIRE_ACTOR=agent`
-   - Do not include cwd in the MVP marker; it is not needed for session attribution and should stay out of visible command fallbacks.
-   - If another extension owns `bash`, fail closed by default. Visible command-prelude injection is an opt-in compatibility mode only.
-4. Keep the previous snapshot-PID approach only as a weak fallback for environments where env reads fail; avoid broadening it in ways that misclassify unrelated processes.
-5. Scan listeners periodically and after bash tool calls/results using a small cross-platform adapter:
+   - Do not include cwd in the marker.
+   - If another extension owns `bash`, fail closed; do not mutate visible commands.
+4. Scan listeners periodically and after bash tool calls/results using a small cross-platform adapter:
    - Use `lsof` where available.
    - Add `ss`/Linux fallback instead of making Tripwire feel macOS-specific.
-6. `agent` origin requires marker/session attribution (env marker, or PID snapshot when explicitly enabled). This is the only tier that proves Pi spawned it.
-7. `project` origin detects listeners whose process cwd is under current `ctx.cwd` (via `cwd.ts`: `/proc/<pid>/cwd` on Linux, batched `lsof -a -p <pids> -d cwd -Fn` elsewhere). `external` origin catches remaining localhost listeners whose label is in `DEV_COMMANDS`. Both render in `dim`; agent renders in `accent`. Agent attribution always wins over project/external for the same `label:port`.
-8. Render compact labels as `<process>:<port>` in the footer, with no visible `Tripwire` prefix. Origin is conveyed by color only, never `@project`-style text.
+5. `agent` origin requires current-session marker attribution or scoped ancestry from the current Pi process. This is the only tier that proves Pi spawned it.
+6. `project` origin detects listeners whose process cwd is under current `ctx.cwd` (via `cwd.ts`: `/proc/<pid>/cwd` on Linux, batched `lsof -a -p <pids> -d cwd -Fn` elsewhere). `external` origin catches remaining localhost listeners whose label is in `DEV_COMMANDS`. Both render in `dim`; agent renders in `accent`. Agent attribution always wins over project/external for the same `label:port`.
+7. Render compact labels as `<process>:<port>` in the footer, with no visible `Tripwire` prefix. Origin is conveyed by color only, never `@project`-style text.
 
-## Code shape we want
+## Code shape
 
-When implementation starts, prefer this structure:
+Keep the implementation small and modular:
 
 ```text
 extensions/
   tripwire/
     index.ts        # Pi package entrypoint and lifecycle wiring
-    lsof.ts         # lsof execution + parser
+    runtime.ts      # session resources, bash attribution, refresh coordination
+    scanner.ts      # adapter orchestration, health, and deduplication
+    lsof.ts         # macOS/POSIX listener execution + parser
+    ss.ts           # Linux listener fallback + parser
     cwd.ts          # per-process cwd lookup (lsof -Fn / /proc) + parser
+    env.ts          # per-process Tripwire marker lookup + parser
+    ancestry.ts     # scoped process-parent parsing and lookup
+    session.ts      # stable session-id derivation
     classify.ts     # origin (agent/project/external) rules and label heuristics
-    format.ts       # footer/status formatting and future origin colors
-    config.ts       # defaults and config parsing
+    format.ts       # footer/status formatting, colors, and links
+    config.ts       # defaults and known dev commands
     types.ts        # shared types
-    *.test.ts       # parser/classifier/formatter tests
+    *.test.ts       # unit, runtime, and opt-in integration coverage
 ```
 
 ## Development expectations
 
 - TypeScript, dependency-light. Use Node built-ins and Pi-provided packages unless a dependency earns its keep.
+- Follow Pi package guidance for bundled core packages: keep `@earendil-works/pi-coding-agent` as a `"*"` peer/dev dependency, do not bundle it, and keep `package-lock.json` refreshed so local typechecks exercise the current Pi API.
 - Before committing/releasing run `npm run check`.
-- `npm run check` runs tests, TypeScript typecheck, and production audit (`npm audit --omit=dev`).
+- `npm run check` runs tests, TypeScript typecheck, and a production audit with lifecycle scripts disabled (`npm audit --omit=dev --ignore-scripts`).
 - Maintain both distribution paths going forward: GitHub installs (`pi install git:github.com/wdphoto/pi-tripwire`) and npm installs (`pi install npm:pi-tripwire`) should stay valid.
 - For releases, keep GitHub and npm in sync: update `version`, README install examples, package metadata/files, publish npm, tag/push the matching GitHub release/tag, and verify with `npm view pi-tripwire version` plus a GitHub install reference.
 - Pi does not require a special lint/test command for packages; our repo owns its release gate.
 - Parser/classifier/formatter should be pure functions and easy to test with fixture strings.
 - Keep timers idempotent; never leak intervals across `/reload`, `/new`, `/resume`, `/fork`, or shutdown.
 - Keep scans cheap. Default refresh is currently 10 seconds, plus immediate refresh after bash activity.
-- The footer text is plain labels (`hugo:1313`). MVP may use one Pi-spawned color only; later origin is conveyed by color, not noisy suffixes.
+- The footer text is plain labels (`hugo:1313`). Agent listeners use `accent`; project/external heuristic listeners use `dim`; origin is conveyed by color, not noisy suffixes.
 - The footer line must be ANSI-width safe if we color it. Use `truncateToWidth` / `visibleWidth` from `@earendil-works/pi-tui` when needed.
-
-## Prior art
-
-The first attempt was a local backup prototype at `agent/extensions/localhost-ports.ts`.
-
-Useful ideas from it:
-- `ctx.ui.setStatus("localhost-ports", ...)` rather than custom footer replacement.
-- `lsof -iTCP -sTCP:LISTEN -n -P` for listener discovery.
-- OSC 8 hyperlinks for clickable `http://localhost:<port>` labels.
-- compact labels like `hugo:1313`.
-
-Things to improve:
-- It tracked new PIDs by before/after `ps` snapshots, which is simple but can misattribute unrelated processes born during the same window.
-- It included user/external categories; MVP should postpone those.
 
 ## Open questions
 
-See `plan.md` for the working checklist and remaining product questions. Ask before adding scope beyond the footer line.
+See `MAP.md` for the active roadmap and current technical decisions. Ask before adding scope beyond the footer line.

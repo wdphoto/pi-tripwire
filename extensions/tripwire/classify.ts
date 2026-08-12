@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import { DEV_COMMANDS } from "./config.ts";
 import type { ListenerOrigin, RawListener, TrackedListener, TripwireMarker } from "./types.ts";
 
@@ -14,10 +15,15 @@ export function listenerUrl(port: number): string {
 
 export function isLocalHost(host: string | undefined): boolean {
   if (!host) return true;
-  const normalized = host.toLowerCase();
-  if (["*", "localhost", "0.0.0.0", "::", "[::]"].includes(normalized)) return true;
-  if (normalized === "::1" || normalized === "[::1]") return true;
-  return normalized.startsWith("127.");
+
+  const normalized = host.trim().toLowerCase().replace(/^\[(.*)\]$/, "$1");
+  if (["*", "localhost", "0.0.0.0", "::"].includes(normalized)) return true;
+  if (normalized === "::1") return true;
+
+  const mappedIpv4 = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1];
+  if (mappedIpv4) return isIP(mappedIpv4) === 4 && mappedIpv4.startsWith("127.");
+
+  return isIP(normalized) === 4 && normalized.startsWith("127.");
 }
 
 export function isUnderPath(path: string, root: string): boolean {
@@ -35,7 +41,7 @@ const ORIGIN_PRIORITY: Record<ListenerOrigin, number> = {
 export function classifyListeners(options: {
   listeners: RawListener[];
   markers: Map<number, TripwireMarker>;
-  agentPids: Set<number>;
+  ancestryPids?: ReadonlySet<number>;
   sessionId: string;
   projectRoot?: string;
   cwds?: Map<number, string>;
@@ -50,7 +56,7 @@ export function classifyListeners(options: {
     const marker = options.markers.get(listener.pid);
     const label = labelForCommand(listener.command);
     const fromEnv = marker?.session === options.sessionId && marker.actor === "agent";
-    const fromSnapshot = options.agentPids.has(listener.pid) && DEV_COMMANDS.has(label);
+    const fromAncestry = options.ancestryPids?.has(listener.pid) ?? false;
     const cwd = options.cwds?.get(listener.pid);
     const fromProject =
       Boolean(options.includeProjectListeners) && Boolean(options.projectRoot) && cwd !== undefined &&
@@ -58,14 +64,13 @@ export function classifyListeners(options: {
     const fromExternal = Boolean(options.includeExternalListeners) && DEV_COMMANDS.has(label);
 
     let candidate: TrackedListener | undefined;
-    if (fromEnv || fromSnapshot) {
+    if (fromEnv || fromAncestry) {
       candidate = {
         ...listener,
         label,
         url: listenerUrl(listener.port),
         origin: "agent",
-        ...(marker ? { marker } : {}),
-        source: fromEnv ? "env" : "pid-snapshot",
+        source: fromEnv ? "env" : "ancestry",
       };
     } else if (fromProject) {
       candidate = { ...listener, label, url: listenerUrl(listener.port), origin: "project", source: "cwd" };

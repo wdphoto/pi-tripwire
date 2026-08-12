@@ -23,21 +23,28 @@ export function parseTripwireEnvText(text: string): TripwireMarker {
   return marker;
 }
 
-export async function readTripwireMarker(pid: number): Promise<TripwireMarker> {
+export async function readTripwireMarker(pid: number, signal?: AbortSignal): Promise<TripwireMarker> {
   if (process.platform === "linux") {
     try {
-      const text = await readFile(`/proc/${pid}/environ`, "utf8");
+      const text = await readFile(`/proc/${pid}/environ`, {
+        encoding: "utf8",
+        ...(signal ? { signal } : {}),
+      });
       return parseTripwireEnvText(text);
     } catch {
+      if (signal?.aborted) return {};
       // Fall through to ps fallback below.
     }
   }
+
+  if (signal?.aborted) return {};
 
   try {
     // BSD/macOS ps can expose environment with the e flag. This is best-effort.
     const { stdout } = await execFileAsync("ps", ["eww", "-p", String(pid), "-o", "command="], {
       timeout: 1_000,
       maxBuffer: 256 * 1024,
+      ...(signal ? { signal } : {}),
     });
     return parseTripwireEnvText(stdout);
   } catch {

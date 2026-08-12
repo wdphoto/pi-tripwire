@@ -30,6 +30,7 @@ Thumbs.db
 .pi/**/*.bak.*
 
 # Construct local/dev artifacts
+.pi/construct.json
 .pi/construct.lock.json
 construct-*.sh
 construct-*/

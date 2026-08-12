@@ -43,9 +43,10 @@ export function parseLsofCwdOutput(output: string): Map<number, string> {
   return cwds;
 }
 
-async function readProcessCwdsViaProc(pids: number[]): Promise<Map<number, string>> {
+async function readProcessCwdsViaProc(pids: number[], signal?: AbortSignal): Promise<Map<number, string>> {
   const entries = await Promise.all(
     pids.map(async (pid): Promise<readonly [number, string] | undefined> => {
+      if (signal?.aborted) return undefined;
       try {
         const cwd = await readlink(`/proc/${pid}/cwd`);
         return cwd ? ([pid, cwd] as const) : undefined;
@@ -62,11 +63,16 @@ async function readProcessCwdsViaProc(pids: number[]): Promise<Map<number, strin
   return cwds;
 }
 
-async function readProcessCwdsViaLsof(pids: number[], timeoutMs: number): Promise<Map<number, string>> {
+async function readProcessCwdsViaLsof(
+  pids: number[],
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<Map<number, string>> {
   try {
     const { stdout } = await execFileAsync("lsof", ["-a", "-p", pids.join(","), "-d", "cwd", "-Fn"], {
       timeout: timeoutMs,
       maxBuffer: 256 * 1024,
+      ...(signal ? { signal } : {}),
     });
     return parseLsofCwdOutput(stdout);
   } catch (error) {
@@ -79,10 +85,15 @@ async function readProcessCwdsViaLsof(pids: number[], timeoutMs: number): Promis
 }
 
 /** Best-effort cwd lookup for listener processes. Missing pids are simply absent. */
-export async function readProcessCwds(pids: number[], timeoutMs = 1_000): Promise<Map<number, string>> {
+export async function readProcessCwds(
+  pids: number[],
+  timeoutMs = 1_000,
+  signal?: AbortSignal,
+): Promise<Map<number, string>> {
   const unique = [...new Set(pids)].filter((pid) => Number.isInteger(pid) && pid > 0).slice(0, MAX_CWD_PIDS);
   if (unique.length === 0) return new Map();
 
-  if (process.platform === "linux") return readProcessCwdsViaProc(unique);
-  return readProcessCwdsViaLsof(unique, timeoutMs);
+  if (signal?.aborted) return new Map();
+  if (process.platform === "linux") return readProcessCwdsViaProc(unique, signal);
+  return readProcessCwdsViaLsof(unique, timeoutMs, signal);
 }

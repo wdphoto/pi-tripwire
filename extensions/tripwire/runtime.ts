@@ -1,20 +1,19 @@
 import { realpathSync } from "node:fs";
 import type { ExtensionAPI, ExtensionContext, SourceInfo, ToolCallEvent, ToolResultEvent } from "@earendil-works/pi-coding-agent";
-import { createBashTool, isToolCallEventType } from "@earendil-works/pi-coding-agent";
+import { createBashTool } from "@earendil-works/pi-coding-agent";
+import { readDescendantListeners } from "./ancestry.ts";
 import { classifyListeners, isLocalHost } from "./classify.ts";
 import { DEFAULT_CONFIG, TRIPWIRE_ENV } from "./config.ts";
 import { readProcessCwds } from "./cwd.ts";
 import { readTripwireMarker } from "./env.ts";
 import { formatFooterStatus } from "./format.ts";
-import { diffPids, pruneDeadPids, snapshotPids } from "./process.ts";
 import { DefaultListenerScanner, type ListenerScanner, type ScanResult } from "./scanner.ts";
 import { deriveTripwireSessionId } from "./session.ts";
-import { buildExportPrelude } from "./shell.ts";
 import type { TripwireConfig, TripwireMarker } from "./types.ts";
 
-type BashInjectionMode = "none" | "spawn-hook" | "command-prelude";
-type MarkerReader = (pid: number) => Promise<TripwireMarker>;
-type CwdReader = (pids: number[]) => Promise<Map<number, string>>;
+type MarkerReader = (pid: number, signal?: AbortSignal) => Promise<TripwireMarker>;
+type CwdReader = (pids: number[], signal?: AbortSignal) => Promise<Map<number, string>>;
+type AncestryReader = (pids: number[], signal?: AbortSignal) => Promise<ReadonlySet<number>>;
 
 function sourceKey(sourceInfo: SourceInfo | undefined): string {
   if (!sourceInfo) return "";
@@ -28,16 +27,12 @@ export class TripwireRuntime {
   private sessionAbortController: AbortController | undefined;
   private disposed = true;
   private enabled = false;
-  private bashInjectionMode: BashInjectionMode = "none";
-  private ownedBashSourceKey = "";
+  private bashOwnerSourceKey = "";
   private refreshInFlight = false;
   private refreshQueued = false;
   private sessionGeneration = 0;
   private projectRoot = "";
   private readonly defaultScanner: ListenerScanner;
-
-  private readonly pendingSnapshots = new Map<string, Set<number>>();
-  private readonly agentPids = new Set<number>();
 
   constructor(
     private readonly options: {
@@ -46,6 +41,7 @@ export class TripwireRuntime {
       scanner?: ListenerScanner;
       readMarker?: MarkerReader;
       readCwds?: CwdReader;
+      readAncestry?: AncestryReader;
     },
   ) {
     this.defaultScanner = options.scanner ?? new DefaultListenerScanner(this.config);
@@ -58,15 +54,12 @@ export class TripwireRuntime {
   start(ctx: ExtensionContext): void {
     this.disposed = false;
     this.enabled = ctx.hasUI;
-    this.bashInjectionMode = "none";
-    this.ownedBashSourceKey = "";
+    this.bashOwnerSourceKey = "";
     this.sessionGeneration++;
     this.sessionAbortController?.abort();
     this.sessionAbortController = new AbortController();
     this.sessionId = this.deriveSessionId(ctx);
     this.projectRoot = this.resolveProjectRoot(ctx);
-    this.pendingSnapshots.clear();
-    this.agentPids.clear();
     this.refreshQueued = false;
 
     this.clearInterval();
@@ -82,15 +75,12 @@ export class TripwireRuntime {
   stop(ctx: ExtensionContext): void {
     this.disposed = true;
     this.enabled = false;
-    this.bashInjectionMode = "none";
-    this.ownedBashSourceKey = "";
+    this.bashOwnerSourceKey = "";
     this.sessionGeneration++;
     this.refreshQueued = false;
     this.sessionAbortController?.abort();
     this.sessionAbortController = undefined;
     this.projectRoot = "";
-    this.pendingSnapshots.clear();
-    this.agentPids.clear();
 
     this.clearInterval();
     this.clearScheduledRefresh();
@@ -100,33 +90,11 @@ export class TripwireRuntime {
 
   async onToolCall(event: ToolCallEvent, ctx: ExtensionContext): Promise<void> {
     if (!this.enabled || event.toolName !== "bash") return;
-
-    if (this.config.enablePidSnapshotFallback) {
-      this.pendingSnapshots.set(event.toolCallId, await snapshotPids(this.config.pidSnapshotTimeoutMs));
-    }
-
-    if (this.shouldUseCommandPrelude() && isToolCallEventType("bash", event)) {
-      this.applyCommandPrelude(event.input.command, (command) => {
-        event.input.command = command;
-      });
-    }
-
     this.scheduleRefresh(ctx);
   }
 
   async onToolResult(event: ToolResultEvent, ctx: ExtensionContext): Promise<void> {
     if (!this.enabled || event.toolName !== "bash") return;
-
-    if (this.config.enablePidSnapshotFallback) {
-      const before = this.pendingSnapshots.get(event.toolCallId);
-      this.pendingSnapshots.delete(event.toolCallId);
-
-      if (before) {
-        const after = await snapshotPids(this.config.pidSnapshotTimeoutMs);
-        for (const pid of diffPids(before, after)) this.agentPids.add(pid);
-      }
-    }
-
     this.scheduleRefresh(ctx, 100);
   }
 
@@ -139,7 +107,11 @@ export class TripwireRuntime {
   }
 
   private get readCwds(): CwdReader {
-    return this.options.readCwds ?? ((pids) => readProcessCwds(pids, this.config.scanTimeoutMs));
+    return this.options.readCwds ?? ((pids, signal) => readProcessCwds(pids, this.config.scanTimeoutMs, signal));
+  }
+
+  private get readAncestry(): AncestryReader {
+    return this.options.readAncestry ?? ((pids, signal) => readDescendantListeners(pids, process.pid, this.config.scanTimeoutMs, signal));
   }
 
   private resolveProjectRoot(ctx: ExtensionContext): string {
@@ -172,12 +144,27 @@ export class TripwireRuntime {
       if (!scan.ok) return;
 
       const listeners = scan.listeners.filter((listener) => isLocalHost(listener.host));
-      if (this.config.enablePidSnapshotFallback && this.agentPids.size > 0) pruneDeadPids(this.agentPids);
-
       const pids = [...new Set(listeners.map((listener) => listener.pid))];
-      const markerEntries = await Promise.all(
-        pids.map(async (pid): Promise<[number, TripwireMarker]> => [pid, await this.readMarker(pid)]),
-      );
+      const signal = this.sessionAbortController?.signal;
+      const ancestry = this.bashAttributionIsActive()
+        ? Promise.resolve()
+            .then(() => this.readAncestry(pids, signal))
+            .catch(() => new Set<number>())
+        : Promise.resolve(new Set<number>());
+      const [markerEntries, ancestryPids] = await Promise.all([
+        Promise.all(
+          pids.map(
+            async (pid): Promise<[number, TripwireMarker]> => {
+              try {
+                return [pid, await this.readMarker(pid, signal)];
+              } catch {
+                return [pid, {}];
+              }
+            },
+          ),
+        ),
+        ancestry,
+      ]);
       const markers = new Map(markerEntries);
 
       if (this.disposed || generation !== this.sessionGeneration) return;
@@ -186,16 +173,22 @@ export class TripwireRuntime {
       if (this.config.includeProjectListeners && this.projectRoot) {
         const unattributedPids = pids.filter((pid) => {
           const marker = markers.get(pid);
-          return !(marker?.session === this.sessionId && marker.actor === "agent");
+          return !(marker?.session === this.sessionId && marker.actor === "agent") && !ancestryPids.has(pid);
         });
-        if (unattributedPids.length > 0) cwds = await this.readCwds(unattributedPids);
+        if (unattributedPids.length > 0) {
+          try {
+            cwds = await this.readCwds(unattributedPids, signal);
+          } catch {
+            cwds = new Map();
+          }
+        }
         if (this.disposed || generation !== this.sessionGeneration) return;
       }
 
       const tracked = classifyListeners({
         listeners,
         markers,
-        agentPids: this.agentPids,
+        ancestryPids,
         sessionId: this.sessionId,
         projectRoot: this.projectRoot,
         ...(cwds ? { cwds } : {}),
@@ -213,10 +206,7 @@ export class TripwireRuntime {
   }
 
   private installBashAttribution(ctx: ExtensionContext): void {
-    if (!this.activeBashIsBuiltin()) {
-      this.bashInjectionMode = this.config.enableCommandPreludeFallback ? "command-prelude" : "none";
-      return;
-    }
+    if (!this.activeBashIsBuiltin()) return;
 
     const bashTool = createBashTool(ctx.cwd, {
       spawnHook: ({ command, cwd, env }) => ({
@@ -235,44 +225,19 @@ export class TripwireRuntime {
       execute: async (toolCallId, params, signal, onUpdate, _ctx) =>
         bashTool.execute(toolCallId, params, signal, onUpdate),
     });
-
-    this.ownedBashSourceKey = sourceKey(this.activeBashSourceInfo());
-    this.bashInjectionMode = this.ownedBashSourceKey ? "spawn-hook" : "none";
+    this.bashOwnerSourceKey = sourceKey(this.activeBashSourceInfo());
   }
 
-  private shouldUseCommandPrelude(): boolean {
-    if (this.bashInjectionMode === "command-prelude") return true;
-    if (this.bashInjectionMode !== "spawn-hook") return false;
-    if (this.activeBashIsOwned()) return false;
-
-    this.bashInjectionMode = this.config.enableCommandPreludeFallback ? "command-prelude" : "none";
-    return this.bashInjectionMode === "command-prelude";
+  private bashAttributionIsActive(): boolean {
+    return Boolean(this.bashOwnerSourceKey) && sourceKey(this.activeBashSourceInfo()) === this.bashOwnerSourceKey;
   }
 
   private activeBashIsBuiltin(): boolean {
     return this.activeBashSourceInfo()?.source === "builtin";
   }
 
-  private activeBashIsOwned(): boolean {
-    return Boolean(this.ownedBashSourceKey) && sourceKey(this.activeBashSourceInfo()) === this.ownedBashSourceKey;
-  }
-
   private activeBashSourceInfo(): SourceInfo | undefined {
     return this.options.pi.getAllTools().find((tool) => tool.name === "bash")?.sourceInfo;
-  }
-
-  private applyCommandPrelude(command: string, setCommand: (command: string) => void): void {
-    if (this.hasTripwirePrelude(command)) return;
-
-    const prelude = buildExportPrelude({
-      [TRIPWIRE_ENV.session]: this.sessionId,
-      [TRIPWIRE_ENV.actor]: "agent",
-    });
-    setCommand(`${prelude}${command}`);
-  }
-
-  private hasTripwirePrelude(command: string): boolean {
-    return new RegExp(`(^|\\n)\\s*export\\s+${TRIPWIRE_ENV.session}=`).test(command);
   }
 
   private deriveSessionId(ctx: ExtensionContext): string {

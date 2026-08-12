@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseLsofListeners } from "./lsof.ts";
+import { parseLsofListeners, scanResultFromLsofError } from "./lsof.ts";
 
 test("parseLsofListeners parses common lsof LISTEN rows", () => {
   const output = `COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
@@ -16,6 +16,25 @@ ruby    12348 will    6u  IPv4 0xaaa      0t0  TCP localhost:4567 (LISTEN)
     { pid: 12347, command: "Python", host: "[::1]", port: 8000, protocol: "tcp" },
     { pid: 12348, command: "ruby", host: "localhost", port: 4567, protocol: "tcp" },
   ]);
+});
+
+test("scanResultFromLsofError treats lsof's no-match exit as a successful empty scan", () => {
+  assert.deepEqual(scanResultFromLsofError({ code: 1, stdout: "", stderr: "" }), {
+    listeners: [],
+    ok: true,
+  });
+});
+
+test("scanResultFromLsofError preserves real failures and missing-tool capability", () => {
+  assert.deepEqual(scanResultFromLsofError({ code: 1, stdout: "", stderr: "permission denied" }), {
+    listeners: [],
+    ok: false,
+  });
+  assert.deepEqual(scanResultFromLsofError({ code: "ENOENT" }), {
+    listeners: [],
+    ok: false,
+    unavailable: true,
+  });
 });
 
 test("parseLsofListeners ignores non-listener junk", () => {
