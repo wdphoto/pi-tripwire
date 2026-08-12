@@ -74,7 +74,7 @@ test("TripwireRuntime attributes a real Pi bash child", { skip: !shouldRun }, as
   } as unknown as ExtensionContext;
   const runtime = new TripwireRuntime({
     pi,
-    config: { ...DEFAULT_CONFIG, refreshMs: 60_000, scanTimeoutMs: 2_000 },
+    config: { ...DEFAULT_CONFIG, refreshMs: 250, scanTimeoutMs: 2_000 },
   });
   let childPid = 0;
 
