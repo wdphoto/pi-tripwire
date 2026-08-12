@@ -18,9 +18,9 @@ Labels stay compact (`hugo:1313`). Provenance is communicated by color only:
 
 ## Session checkpoint
 
-The extension API and package guidance have been reviewed against Pi 0.84.1. The local Pi development lock now matches that version, current types compile, the real bash-tool/listener smoke passes, and macOS `lsof` no-match exits are correctly treated as successful empty inventories so stale footer entries clear after the final server exits. Validation is clean: 45 unit tests passed (1 opt-in integration test skipped in the unit run), 1 integration test passed, TypeScript, full and production audits, package dry run, and a packaged-extension load through Pi's CLI. Version 0.0.7 is prepared, and GitHub Actions now checks macOS and Linux with an additional macOS integration smoke.
+Version 0.0.7 is published to npm and GitHub from commit `48375c4`, with both Pi install paths verified. The extension API and package guidance were reviewed against Pi 0.84.1; current types compile, the real bash-tool/listener smoke passes, and macOS `lsof` no-match exits correctly clear stale footer status. GitHub Actions checks macOS and Linux, with the real integration smoke on macOS. Release validation was clean: 45 unit tests passed (1 opt-in integration test skipped in the unit run), 1 integration test passed, TypeScript, full and production audits, package dry run, and packaged-extension loads through Pi's CLI from both sources.
 
-Next session: publish and tag 0.0.7 from the same commit, verify both install paths, then expand the macOS integration matrix with `/reload`, wrappers, process exits, Python/Hugo labels, permissions, and missing tools.
+Next session: expand the macOS integration matrix with `/reload`, wrappers, process exits, Python/Hugo labels, permissions, and missing tools.
 
 ## Current baseline
 
@@ -44,7 +44,7 @@ Known baseline limitations:
 - A Pi root-PID hook is not exposed by the current API, so ancestry cannot prove detached/background processes after reparenting.
 - Windows has no process/listener adapter.
 - `external` detection is heuristic and can produce false positives.
-- GitHub `v0.0.6` and npm `0.0.5` remain historical mismatches; release 0.0.7 to both registries from one commit before claiming parity.
+- GitHub `v0.0.6` and npm `0.0.5` remain historical mismatches; synchronized releases resumed with 0.0.7.
 - `.pi/construct.json` is machine-local state and must not remain tracked.
 
 ## Execution order
@@ -107,7 +107,7 @@ Known baseline limitations:
 - [x] Keep Pi core peer/dev dependency ranges at `"*"` as required by Pi package guidance, and lock the development install to the current API for reproducible typechecks.
 - [x] Support and test the current Pi API; add an older-version compatibility floor only if user demand or a regression requires it.
 - [x] Make `npm run check` and `npm pack --dry-run` CI release gates.
-- [ ] Publish/tag 0.0.7 from one commit, then verify npm and GitHub installation paths from clean checkouts.
+- [x] Publish/tag 0.0.7 from one commit and verify npm and GitHub package loads through Pi's temporary install path.
 
 **Exit criteria:** releases are reproducible, package contents are intentional, and supported Pi/API versions are documented.
 

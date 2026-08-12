@@ -26,6 +26,13 @@ Or install from GitHub:
 pi install git:github.com/wdphoto/pi-tripwire
 ```
 
+Pinned installs are also supported:
+
+```sh
+pi install npm:pi-tripwire@0.0.7
+pi install git:github.com/wdphoto/pi-tripwire@v0.0.7
+```
+
 Then restart Pi or run:
 
 ```text
